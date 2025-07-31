@@ -1,0 +1,266 @@
+const API_BASE_URL = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined) || 'http://localhost:5000/api'
+
+interface ApiResponse<T = any> {
+  data?: T
+  error?: string
+  message?: string
+}
+
+class ApiService {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${API_BASE_URL}${endpoint}`
+    
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    }
+
+    try {
+      const response = await fetch(url, config)
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          error: data.error || `HTTP ${response.status}: ${response.statusText}`,
+        }
+      }
+
+      return { data }
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : 'Network error',
+      }
+    }
+  }
+
+  // Test API connectivity
+  async testConnection() {
+    return this.request('/health')
+  }
+
+  // Auth endpoints
+  async login(username: string, password: string) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    })
+  }
+
+  async register(userData: {
+    username: string
+    email: string
+    password: string
+    name: string
+  }) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    })
+  }
+
+  async getProfile(token: string) {
+    return this.request('/auth/profile', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async updateProfile(token: string, profileData: {
+    name?: string
+    phone?: string
+    whatsapp?: string
+  }) {
+    return this.request('/auth/profile', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileData),
+    })
+  }
+
+  // Rides endpoints
+  async getRides(token: string) {
+    return this.request('/rides', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async createRide(token: string, rideData: any) {
+    return this.request('/rides', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(rideData),
+    })
+  }
+
+  async getRide(token: string, rideId: string) {
+    return this.request(`/rides/${rideId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async updateRide(token: string, rideId: string, rideData: any) {
+    return this.request(`/rides/${rideId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(rideData),
+    })
+  }
+
+  async deleteRide(token: string, rideId: string) {
+    return this.request(`/rides/${rideId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async expressInterest(token: string, rideId: string) {
+    return this.request(`/rides/${rideId}/interest`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // Roommates endpoints
+  async getRoommateRequests(token: string) {
+    return this.request('/roommates', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async createRoommateRequest(token: string, requestData: any) {
+    return this.request('/roommates', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestData),
+    })
+  }
+
+  async getRoommateRequest(token: string, requestId: string) {
+    return this.request(`/roommates/${requestId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async updateRoommateRequest(token: string, requestId: string, requestData: any) {
+    return this.request(`/roommates/${requestId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestData),
+    })
+  }
+
+  async deleteRoommateRequest(token: string, requestId: string) {
+    return this.request(`/roommates/${requestId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // Subleases endpoints
+  async getSubleases(token: string) {
+    return this.request('/subleases', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async createSublease(token: string, subleaseData: any) {
+    return this.request('/subleases', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(subleaseData),
+    })
+  }
+
+  async getSublease(token: string, subleaseId: string) {
+    return this.request(`/subleases/${subleaseId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async updateSublease(token: string, subleaseId: string, subleaseData: any) {
+    return this.request(`/subleases/${subleaseId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(subleaseData),
+    })
+  }
+
+  async deleteSublease(token: string, subleaseId: string) {
+    return this.request(`/subleases/${subleaseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // Notifications endpoints
+  async getNotifications(token: string) {
+    return this.request('/notifications', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async markNotificationAsRead(token: string, notificationId: string) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // Locations endpoints
+  async getLocations(query?: string) {
+    const params = query ? `?q=${encodeURIComponent(query)}` : ''
+    return this.request(`/locations${params}`)
+  }
+
+  // Health check
+  async healthCheck() {
+    return this.request('/health')
+  }
+}
+
+export const apiService = new ApiService() 
