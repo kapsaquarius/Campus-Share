@@ -110,61 +110,87 @@ def search_rides_with_scoring(search_criteria):
     return scored_rides
 
 def get_ride_with_details(ride_id):
-    """Get a ride with driver information and interest count"""
+    """Get a ride with driver information and interest count using aggregation"""
     ride_posts = get_collection('ride_posts')
-    ride_interests = get_collection('ride_interests')
-    users = get_collection('users')
-    locations = get_collection('locations')
     
-    ride = ride_posts.find_one({'_id': ride_id})
-    if not ride:
+    # Use aggregation to get ride, driver, locations, and interest count in one query
+    pipeline = [
+        {'$match': {'_id': ride_id}},
+        {'$lookup': {
+            'from': 'users',
+            'localField': 'userId',
+            'foreignField': '_id',
+            'as': 'driver'
+        }},
+        {'$lookup': {
+            'from': 'locations',
+            'localField': 'startingFrom',
+            'foreignField': '_id',
+            'as': 'startingLocation'
+        }},
+        {'$lookup': {
+            'from': 'locations',
+            'localField': 'goingTo',
+            'foreignField': '_id',
+            'as': 'goingLocation'
+        }},
+        {'$lookup': {
+            'from': 'ride_interests',
+            'localField': '_id',
+            'foreignField': 'rideId',
+            'as': 'interests'
+        }},
+        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+        {'$unwind': {'path': '$startingLocation', 'preserveNullAndEmptyArrays': True}},
+        {'$unwind': {'path': '$goingLocation', 'preserveNullAndEmptyArrays': True}},
+        {'$addFields': {
+            'interestCount': {'$size': '$interests'},
+            'isHotRide': {'$gte': [{'$size': '$interests'}, 3]}
+        }}
+    ]
+    
+    ride_details = list(ride_posts.aggregate(pipeline))
+    
+    if not ride_details:
         return None
     
-    # Get driver information
-    driver = users.find_one({'_id': ride['userId']})
-    
-    # Get location details
-    starting_from = locations.find_one({'_id': ride['startingFrom']})
-    going_to = locations.find_one({'_id': ride['goingTo']})
-    
-    # Get interest count
-    interest_count = ride_interests.count_documents({'rideId': ride_id})
+    ride_data = ride_details[0]
     
     # Format the response
-    ride_details = {
-        '_id': str(ride['_id']),
+    formatted_ride = {
+        '_id': str(ride_data['_id']),
         'startingFrom': {
-            '_id': str(starting_from['_id']),
-            'zipCode': starting_from['zipCode'],
-            'city': starting_from['city'],
-            'state': starting_from['state'],
-            'stateName': starting_from['stateName'],
-            'displayName': f"{starting_from['city']}, {starting_from['stateName']} {starting_from['zipCode']}"
-        } if starting_from else None,
+            '_id': str(ride_data['startingLocation']['_id']),
+            'zipCode': ride_data['startingLocation']['zipCode'],
+            'city': ride_data['startingLocation']['city'],
+            'state': ride_data['startingLocation']['state'],
+            'stateName': ride_data['startingLocation']['stateName'],
+            'displayName': f"{ride_data['startingLocation']['city']}, {ride_data['startingLocation']['stateName']} {ride_data['startingLocation']['zipCode']}"
+        } if ride_data.get('startingLocation') else None,
         'goingTo': {
-            '_id': str(going_to['_id']),
-            'zipCode': going_to['zipCode'],
-            'city': going_to['city'],
-            'state': going_to['state'],
-            'stateName': going_to['stateName'],
-            'displayName': f"{going_to['city']}, {going_to['stateName']} {going_to['zipCode']}"
-        } if going_to else None,
-        'travelDate': ride['travelDate'],
-        'departureStartTime': ride['departureStartTime'],
-        'departureEndTime': ride['departureEndTime'],
-        'availableSeats': ride['availableSeats'],
-        'seatsRemaining': ride['seatsRemaining'],
-        'suggestedContribution': ride['suggestedContribution'],
-        'status': ride['status'],
-        'createdAt': ride['createdAt'],
-        'updatedAt': ride['updatedAt'],
+            '_id': str(ride_data['goingLocation']['_id']),
+            'zipCode': ride_data['goingLocation']['zipCode'],
+            'city': ride_data['goingLocation']['city'],
+            'state': ride_data['goingLocation']['state'],
+            'stateName': ride_data['goingLocation']['stateName'],
+            'displayName': f"{ride_data['goingLocation']['city']}, {ride_data['goingLocation']['stateName']} {ride_data['goingLocation']['zipCode']}"
+        } if ride_data.get('goingLocation') else None,
+        'travelDate': ride_data['travelDate'],
+        'departureStartTime': ride_data['departureStartTime'],
+        'departureEndTime': ride_data['departureEndTime'],
+        'availableSeats': ride_data['availableSeats'],
+        'seatsRemaining': ride_data['seatsRemaining'],
+        'suggestedContribution': ride_data['suggestedContribution'],
+        'status': ride_data['status'],
+        'createdAt': ride_data['createdAt'],
+        'updatedAt': ride_data['updatedAt'],
         'driver': {
-            'name': driver['name'],
-            'phoneNumber': driver.get('phoneNumber', ''),
-            'whatsappNumber': driver.get('whatsappNumber', '')
-        } if driver else None,
-        'interestCount': interest_count,
-        'isHotRide': interest_count >= 3
+            'name': ride_data['driver']['name'],
+            'phoneNumber': ride_data['driver'].get('phoneNumber', ''),
+            'whatsappNumber': ride_data['driver'].get('whatsappNumber', '')
+        } if ride_data.get('driver') else None,
+        'interestCount': ride_data['interestCount'],
+        'isHotRide': ride_data['isHotRide']
     }
     
-    return ride_details 
+    return formatted_ride 

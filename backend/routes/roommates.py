@@ -77,15 +77,7 @@ def create_roommate_request():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = [
-            'roomPreference', 'bathroomPreference', 'dietaryPreference',
-            'petFriendly', 'rentBudget', 'aboutMe', 'lifestyleQuestionnaire'
-        ]
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
-        
+        # Frontend already validated required fields, proceed directly
         # Check if user already has an active request
         roommate_requests = get_collection('roommate_requests')
         existing_request = roommate_requests.find_one({
@@ -102,8 +94,7 @@ def create_roommate_request():
             'roomPreference': data['roomPreference'],
             'bathroomPreference': data['bathroomPreference'],
             'dietaryPreference': data['dietaryPreference'],
-            'religion': data.get('religion', ''),
-            'caste': data.get('caste', ''),
+            'culturalPreference': data.get('culturalPreference', ''),
             'petFriendly': data['petFriendly'],
             'rentBudget': data['rentBudget'],
             'aboutMe': data['aboutMe'],

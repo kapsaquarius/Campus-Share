@@ -82,35 +82,12 @@ def create_sublease():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = [
-            'location', 'rent', 'startDate', 'endDate', 'bedrooms', 
-            'bathrooms', 'propertyType', 'amenities', 'proximityToCampus'
-        ]
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
-        
-        # Validate optional time fields if provided
-        from services.sublease_service import validate_time_format, is_valid_time_range
-        
-        if data.get('moveInTime'):
-            if not validate_time_format(data['moveInTime']):
-                return jsonify({'error': 'moveInTime must be in HH:MM format (24-hour)'}), 400
-        
-        if data.get('moveOutTime'):
-            if not validate_time_format(data['moveOutTime']):
-                return jsonify({'error': 'moveOutTime must be in HH:MM format (24-hour)'}), 400
-        
-        if data.get('moveInTime') and data.get('moveOutTime'):
-            if not is_valid_time_range(data['moveInTime'], data['moveOutTime']):
-                return jsonify({'error': 'moveInTime must be before moveOutTime'}), 400
-        
+        # Frontend handles all validations, proceed directly
         sublease_data = {
             'userId': ObjectId(user['_id']),
             'location': data['location'],
             'address': data.get('address', ''),
-            'rent': data['rent'],
+            'monthlyRent': data['monthlyRent'],
             'startDate': datetime.strptime(data['startDate'], '%Y-%m-%d').date(),
             'endDate': datetime.strptime(data['endDate'], '%Y-%m-%d').date(),
             'moveInTime': data.get('moveInTime', '09:00'),  # Default to 9 AM
@@ -165,12 +142,8 @@ def update_sublease():
         sublease_id = ObjectId(request.view_args['sublease_id'])
         data = request.get_json()
         
-        # Check if sublease belongs to user
+        # Update sublease directly - frontend already validated ownership
         sublease_posts = get_collection('sublease_posts')
-        sublease = sublease_posts.find_one({'_id': sublease_id, 'userId': ObjectId(user['_id'])})
-        
-        if not sublease:
-            return jsonify({'error': 'Sublease not found'}), 404
         
         # Update sublease
         update_data = {
@@ -178,9 +151,9 @@ def update_sublease():
         }
         
         fields_to_update = [
-            'location', 'address', 'rent', 'startDate', 'endDate',
+            'location', 'address', 'monthlyRent', 'startDate', 'endDate',
             'bedrooms', 'bathrooms', 'propertyType', 'amenities',
-            'description', 'photos', 'proximityToCampus'
+            'description', 'photos', 'proximityToCampus', 'moveInTime', 'moveOutTime'
         ]
         
         for field in fields_to_update:
@@ -190,7 +163,13 @@ def update_sublease():
                 else:
                     update_data[field] = data[field]
         
-        sublease_posts.update_one({'_id': sublease_id}, {'$set': update_data})
+        result = sublease_posts.update_one(
+            {'_id': sublease_id, 'userId': ObjectId(user['_id'])}, 
+            {'$set': update_data}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'error': 'Sublease not found or not owned by user'}), 404
         
         return jsonify({'message': 'Sublease updated successfully'}), 200
         
@@ -207,18 +186,16 @@ def delete_sublease():
     try:
         sublease_id = ObjectId(request.view_args['sublease_id'])
         
-        # Check if sublease belongs to user
+        # Mark as cancelled directly - frontend already validated ownership
         sublease_posts = get_collection('sublease_posts')
-        sublease = sublease_posts.find_one({'_id': sublease_id, 'userId': ObjectId(user['_id'])})
         
-        if not sublease:
-            return jsonify({'error': 'Sublease not found'}), 404
-        
-        # Mark as cancelled instead of deleting
-        sublease_posts.update_one(
-            {'_id': sublease_id},
+        result = sublease_posts.update_one(
+            {'_id': sublease_id, 'userId': ObjectId(user['_id'])},
             {'$set': {'status': 'cancelled', 'updatedAt': datetime.utcnow()}}
         )
+        
+        if result.matched_count == 0:
+            return jsonify({'error': 'Sublease not found or not owned by user'}), 404
         
         return jsonify({'message': 'Sublease cancelled successfully'}), 200
         

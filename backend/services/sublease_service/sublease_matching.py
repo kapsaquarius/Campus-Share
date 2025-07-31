@@ -204,53 +204,67 @@ def search_subleases_with_scoring(search_criteria):
     return scored_subleases
 
 def get_sublease_with_details(sublease_id):
-    """Get a sublease with subleaser information"""
+    """Get a sublease with subleaser information using aggregation"""
     sublease_posts = get_collection('sublease_posts')
-    users = get_collection('users')
-    locations = get_collection('locations')
     
-    sublease = sublease_posts.find_one({'_id': sublease_id})
-    if not sublease:
+    # Use aggregation to get sublease, subleaser, and location in one query
+    pipeline = [
+        {'$match': {'_id': sublease_id}},
+        {'$lookup': {
+            'from': 'users',
+            'localField': 'userId',
+            'foreignField': '_id',
+            'as': 'subleaser'
+        }},
+        {'$lookup': {
+            'from': 'locations',
+            'localField': 'location',
+            'foreignField': '_id',
+            'as': 'locationDetails'
+        }},
+        {'$unwind': {'path': '$subleaser', 'preserveNullAndEmptyArrays': True}},
+        {'$unwind': {'path': '$locationDetails', 'preserveNullAndEmptyArrays': True}}
+    ]
+    
+    sublease_details = list(sublease_posts.aggregate(pipeline))
+    
+    if not sublease_details:
         return None
     
-    # Get subleaser information
-    subleaser = users.find_one({'_id': sublease['userId']})
-    
-    # Get location details
-    location = locations.find_one({'_id': sublease['location']})
+    sublease_data = sublease_details[0]
     
     # Format the response
-    sublease_details = {
-        '_id': str(sublease['_id']),
+    formatted_sublease = {
+        '_id': str(sublease_data['_id']),
         'location': {
-            '_id': str(location['_id']),
-            'zipCode': location['zipCode'],
-            'city': location['city'],
-            'state': location['state'],
-            'stateName': location['stateName'],
-            'displayName': f"{location['city']}, {location['stateName']} {location['zipCode']}"
-        } if location else None,
-        'address': sublease['address'],
-        'rent': sublease['rent'],
-        'startDate': sublease['startDate'],
-        'endDate': sublease['endDate'],
-        'moveInTime': sublease['moveInTime'],
-        'moveOutTime': sublease['moveOutTime'],
-        'bedrooms': sublease['bedrooms'],
-        'bathrooms': sublease['bathrooms'],
-        'propertyType': sublease['propertyType'],
-        'amenities': sublease['amenities'],
-        'description': sublease['description'],
-        'photos': sublease['photos'],
-        'proximityToCampus': sublease['proximityToCampus'],
-        'status': sublease['status'],
-        'createdAt': sublease['createdAt'],
-        'updatedAt': sublease['updatedAt'],
+            '_id': str(sublease_data['locationDetails']['_id']),
+            'zipCode': sublease_data['locationDetails']['zipCode'],
+            'city': sublease_data['locationDetails']['city'],
+            'state': sublease_data['locationDetails']['state'],
+            'stateName': sublease_data['locationDetails']['stateName'],
+            'displayName': f"{sublease_data['locationDetails']['city']}, {sublease_data['locationDetails']['stateName']} {sublease_data['locationDetails']['zipCode']}"
+        } if sublease_data.get('locationDetails') else None,
+        'address': sublease_data['address'],
+        'monthlyRent': sublease_data['monthlyRent'],
+        'startDate': sublease_data['startDate'],
+        'endDate': sublease_data['endDate'],
+        'moveInTime': sublease_data['moveInTime'],
+        'moveOutTime': sublease_data['moveOutTime'],
+        'bedrooms': sublease_data['bedrooms'],
+        'bathrooms': sublease_data['bathrooms'],
+        'propertyType': sublease_data['propertyType'],
+        'amenities': sublease_data['amenities'],
+        'description': sublease_data['description'],
+        'photos': sublease_data['photos'],
+        'proximityToCampus': sublease_data['proximityToCampus'],
+        'status': sublease_data['status'],
+        'createdAt': sublease_data['createdAt'],
+        'updatedAt': sublease_data['updatedAt'],
         'subleaser': {
-            'name': subleaser['name'],
-            'phoneNumber': subleaser.get('phoneNumber', ''),
-            'whatsappNumber': subleaser.get('whatsappNumber', '')
-        } if subleaser else None
+            'name': sublease_data['subleaser']['name'],
+            'phoneNumber': sublease_data['subleaser'].get('phoneNumber', ''),
+            'whatsappNumber': sublease_data['subleaser'].get('whatsappNumber', '')
+        } if sublease_data.get('subleaser') else None
     }
     
-    return sublease_details 
+    return formatted_sublease 

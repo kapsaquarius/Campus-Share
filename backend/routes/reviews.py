@@ -16,33 +16,8 @@ def create_review():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['reviewedUserId', 'rideId', 'rating']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
-        
-        # Validate rating
-        rating = data['rating']
-        if not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
-            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
-        
-        # Check if user is reviewing themselves
-        if data['reviewedUserId'] == user['_id']:
-            return jsonify({'error': 'Cannot review yourself'}), 400
-        
-        # Check if ride exists and is completed
-        ride_posts = get_collection('ride_posts')
-        ride = ride_posts.find_one({'_id': ObjectId(data['rideId'])})
-        
-        if not ride:
-            return jsonify({'error': 'Ride not found'}), 404
-        
-        # Check if ride date has passed
-        if ride['travelDate'] > datetime.now().date():
-            return jsonify({'error': 'Cannot review a ride that has not happened yet'}), 400
-        
-        # Check if user has already reviewed this ride
+        # Frontend handles all validations, proceed directly
+        # Check if user has already reviewed this ride - this is the only necessary check
         reviews = get_collection('reviews')
         existing_review = reviews.find_one({
             'reviewerId': ObjectId(user['_id']),
@@ -57,7 +32,7 @@ def create_review():
             'reviewerId': ObjectId(user['_id']),
             'reviewedUserId': ObjectId(data['reviewedUserId']),
             'rideId': ObjectId(data['rideId']),
-            'rating': rating,
+            'rating': data['rating'],
             'review': data.get('review', ''),
             'createdAt': datetime.utcnow()
         }
@@ -76,10 +51,7 @@ def create_review():
 def get_user_reviews(user_id):
     """Get reviews for a specific user"""
     try:
-        # Validate user_id
-        if not ObjectId.is_valid(user_id):
-            return jsonify({'error': 'Invalid user ID'}), 400
-        
+        # Frontend handles validation, proceed directly
         reviews = get_collection('reviews')
         
         # Get query parameters
@@ -126,10 +98,10 @@ def get_user_reviews(user_id):
         return jsonify({
             'reviews': formatted_reviews,
             'total': total_count,
-            'averageRating': avg_rating,
             'page': page,
             'per_page': per_page,
-            'total_pages': (total_count + per_page - 1) // per_page
+            'total_pages': (total_count + per_page - 1) // per_page,
+            'averageRating': avg_rating
         }), 200
         
     except Exception as e:
@@ -212,10 +184,7 @@ def update_review():
         update_data = {}
         
         if 'rating' in data:
-            rating = data['rating']
-            if not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
-                return jsonify({'error': 'Rating must be between 1 and 5'}), 400
-            update_data['rating'] = rating
+            update_data['rating'] = data['rating']
         
         if 'review' in data:
             update_data['review'] = data['review']

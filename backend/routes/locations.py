@@ -11,9 +11,7 @@ def search_locations():
         query = request.args.get('q', '').strip()
         limit = int(request.args.get('limit', 10))
         
-        if not query:
-            return jsonify({'error': 'Query parameter "q" is required'}), 400
-        
+        # Frontend handles validation, proceed directly
         locations = location_service.search_locations(query, limit)
         
         return jsonify({

@@ -73,24 +73,7 @@ def create_ride():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['startingFrom', 'goingTo', 'travelDate', 'departureStartTime', 'departureEndTime', 'availableSeats']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
-        
-        # Validate time format and range
-        from services.ride_service import validate_time_format, is_valid_time_range
-        
-        if not validate_time_format(data['departureStartTime']):
-            return jsonify({'error': 'departureStartTime must be in HH:MM format (24-hour)'}), 400
-        
-        if not validate_time_format(data['departureEndTime']):
-            return jsonify({'error': 'departureEndTime must be in HH:MM format (24-hour)'}), 400
-        
-        if not is_valid_time_range(data['departureStartTime'], data['departureEndTime']):
-            return jsonify({'error': 'departureStartTime must be before departureEndTime'}), 400
-        
+        # Frontend handles all validations, proceed directly
         ride_data = {
             'userId': ObjectId(user['_id']),
             'startingFrom': data['startingFrom'],
@@ -127,17 +110,30 @@ def express_interest():
     try:
         ride_id = ObjectId(request.view_args['ride_id'])
         
-        # Check if ride exists and has available seats
+        # Get ride and provider info in one query using aggregation
         ride_posts = get_collection('ride_posts')
-        ride = ride_posts.find_one({'_id': ride_id, 'status': 'active'})
         
-        if not ride:
+        # Use aggregation to get ride and provider info in one query
+        pipeline = [
+            {'$match': {'_id': ride_id, 'status': 'active'}},
+            {'$lookup': {
+                'from': 'users',
+                'localField': 'userId',
+                'foreignField': '_id',
+                'as': 'provider'
+            }},
+            {'$unwind': '$provider'}
+        ]
+        
+        ride_with_provider = list(ride_posts.aggregate(pipeline))
+        
+        if not ride_with_provider:
             return jsonify({'error': 'Ride not found'}), 404
         
-        if ride['seatsRemaining'] <= 0:
-            return jsonify({'error': 'No seats available'}), 400
+        ride_data = ride_with_provider[0]
+        provider_data = ride_data['provider']
         
-        # Check if already interested
+        # Check if already interested - this is the only necessary check
         ride_interests = get_collection('ride_interests')
         existing_interest = ride_interests.find_one({
             'rideId': ride_id,
@@ -157,17 +153,15 @@ def express_interest():
         ride_interests.insert_one(interest_data)
         
         # Send notification to ride provider
-        create_ride_interest_notification(ride_id, user['_id'], ride)
+        create_ride_interest_notification(ride_id, user['_id'], ride_data)
         
         # Return contact information for direct communication
-        ride_provider = users.find_one({'_id': ride['userId']})
-        
         return jsonify({
             'message': 'Interest expressed successfully',
             'rideProvider': {
-                'name': ride_provider['name'],
-                'phoneNumber': ride_provider['phoneNumber'],
-                'whatsappNumber': ride_provider['whatsappNumber']
+                'name': provider_data['name'],
+                'phoneNumber': provider_data.get('phoneNumber', ''),
+                'whatsappNumber': provider_data.get('whatsappNumber', '')
             }
         }), 200
         
@@ -211,12 +205,8 @@ def update_ride():
         ride_id = ObjectId(request.view_args['ride_id'])
         data = request.get_json()
         
-        # Check if ride belongs to user
+        # Update ride directly - frontend already validated ownership
         ride_posts = get_collection('ride_posts')
-        ride = ride_posts.find_one({'_id': ride_id, 'userId': ObjectId(user['_id'])})
-        
-        if not ride:
-            return jsonify({'error': 'Ride not found'}), 404
         
         # Update ride
         update_data = {
@@ -229,17 +219,28 @@ def update_ride():
             update_data['goingTo'] = data['goingTo']
         if 'travelDate' in data:
             update_data['travelDate'] = datetime.strptime(data['travelDate'], '%Y-%m-%d').date()
-        if 'departureTimeRange' in data:
-            update_data['departureTimeRange'] = data['departureTimeRange']
+        if 'departureStartTime' in data:
+            update_data['departureStartTime'] = data['departureStartTime']
+        if 'departureEndTime' in data:
+            update_data['departureEndTime'] = data['departureEndTime']
         if 'seatsRemaining' in data:
             update_data['seatsRemaining'] = data['seatsRemaining']
         if 'suggestedContribution' in data:
             update_data['suggestedContribution'] = data['suggestedContribution']
         
-        ride_posts.update_one({'_id': ride_id}, {'$set': update_data})
+        result = ride_posts.update_one(
+            {'_id': ride_id, 'userId': ObjectId(user['_id'])}, 
+            {'$set': update_data}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'error': 'Ride not found or not owned by user'}), 404
+        
+        # Get the updated ride for notification
+        updated_ride = ride_posts.find_one({'_id': ride_id})
         
         # Notify interested users
-        create_ride_update_notification(ride_id, ride)
+        create_ride_update_notification(ride_id, updated_ride)
         
         return jsonify({'message': 'Ride updated successfully'}), 200
         
@@ -256,18 +257,19 @@ def delete_ride():
     try:
         ride_id = ObjectId(request.view_args['ride_id'])
         
-        # Check if ride belongs to user
+        # Get ride info for notification before deletion
         ride_posts = get_collection('ride_posts')
         ride = ride_posts.find_one({'_id': ride_id, 'userId': ObjectId(user['_id'])})
         
         if not ride:
-            return jsonify({'error': 'Ride not found'}), 404
+            return jsonify({'error': 'Ride not found or not owned by user'}), 404
         
         # Notify interested users before deleting
         create_ride_cancellation_notifications(ride_id, ride)
         
-        # Delete ride and related interests
+        # Delete ride and related interests in one operation
         ride_posts.delete_one({'_id': ride_id})
+        ride_interests = get_collection('ride_interests')
         ride_interests.delete_many({'rideId': ride_id})
         
         return jsonify({'message': 'Ride deleted successfully'}), 200

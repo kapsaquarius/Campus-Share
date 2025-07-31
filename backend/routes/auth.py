@@ -12,16 +12,6 @@ def register():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['username', 'email', 'password', 'name']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-        
-        # Validate password strength
-        if len(data['password']) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
-        
         # Create user
         user = user_service.create_user(
             username=data['username'],
@@ -50,9 +40,6 @@ def login():
     """Login with username and password"""
     try:
         data = request.get_json()
-        
-        if not data.get('username') or not data.get('password'):
-            return jsonify({"error": "Username and password are required"}), 400
         
         # Authenticate user
         user = user_service.authenticate_user(data['username'], data['password'])

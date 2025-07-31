@@ -109,14 +109,14 @@ def initialize_database():
 def run_app():
     """Run the Flask application"""
     print("🚀 Starting CampusShare Backend...")
-    print("📍 API will be available at: http://localhost:5000")
-    print("🔗 Health check: http://localhost:5000/api/health")
+    print("📍 API will be available at: http://localhost:8000")
+    print("🔗 Health check: http://localhost:8000/api/health")
     print("⏹️ Press Ctrl+C to stop")
     print("-" * 50)
     
     try:
         from app import app
-        app.run(debug=False, host='0.0.0.0', port=5000)
+        app.run(debug=False, host='0.0.0.0', port=8000)
     except KeyboardInterrupt:
         print("\n👋 Shutting down CampusShare Backend...")
     except Exception as e:
