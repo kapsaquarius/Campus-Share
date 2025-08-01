@@ -79,7 +79,6 @@ export default function ProfilePage() {
             <CardContent className="p-8">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=face&auto=format&q=80" alt={currentUser?.name || "Profile"} />
                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                     {getInitials(currentUser?.name || "User")}
                   </AvatarFallback>

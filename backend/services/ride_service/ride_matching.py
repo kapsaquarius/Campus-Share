@@ -334,8 +334,8 @@ def get_ride_with_details(ride_id):
         'updatedAt': ride_data['updatedAt'],
         'driver': {
             'name': ride_data['driver']['name'],
-            'phoneNumber': ride_data['driver'].get('phoneNumber', ''),
-            'whatsappNumber': ride_data['driver'].get('whatsappNumber', '')
+            'phoneNumber': ride_data['driver'].get('phone', ''),
+            'whatsappNumber': ride_data['driver'].get('whatsapp', '')
         } if ride_data.get('driver') else None,
         'interestCount': ride_data['interestCount'],
         'isHotRide': ride_data['isHotRide']

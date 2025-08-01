@@ -372,6 +372,30 @@ def get_my_rides():
     except Exception as e:
         return jsonify({'error': f'Failed to get rides: {str(e)}'}), 400
 
+@rides_bp.route('/<ride_id>', methods=['GET'])
+def get_ride(ride_id):
+    """Get a specific ride by ID"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        ride_id = ObjectId(ride_id)
+        
+        # Use the existing service function that properly fetches driver details
+        ride_with_details = get_ride_with_details(ride_id)
+        
+        if not ride_with_details:
+            return jsonify({'error': 'Ride not found'}), 404
+        
+        # Format the ride data
+        formatted_ride = format_object_id(ride_with_details)
+        
+        return jsonify(formatted_ride), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get ride: {str(e)}'}), 400
+
 @rides_bp.route('/<ride_id>', methods=['PUT'])
 def update_ride(ride_id):
     """Update ride posting with notification to interested users"""

@@ -69,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiService.login(username, password)
       
       if (response.error) {
-        throw new Error(response.error)
+        // Don't throw error, just return it so the UI can handle it gracefully
+        return { error: response.error }
       }
       
       if (response.data) {
@@ -80,10 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Store in localStorage
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
+        
+        return { success: true }
       }
     } catch (error) {
       console.error('Login error:', error)
-      throw error
+      return { error: 'Network error occurred' }
     } finally {
       setLoading(false)
     }

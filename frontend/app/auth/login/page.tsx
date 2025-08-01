@@ -31,14 +31,10 @@ export default function LoginPage() {
 
     if (!formData.username) {
       newErrors.username = "Username is required"
-    } else if (formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters"
     }
 
     if (!formData.password) {
       newErrors.password = "Password is required"
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
     }
 
     setErrors(newErrors)
@@ -52,16 +48,25 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      await login(formData.username, formData.password)
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
-      })
-      router.push("/rides")
+      const result = await login(formData.username, formData.password)
+      
+      if (result?.error) {
+        toast({
+          title: "Login failed",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        })
+        router.push("/rides")
+      }
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid username or password. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
