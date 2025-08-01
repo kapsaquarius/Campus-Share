@@ -12,10 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, Car, MapPin, Clock, Users, DollarSign, Loader2 } from "lucide-react"
+import { CalendarIcon, Car, MapPin, Clock, Users, DollarSign, Loader2, X } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/contexts/location-context"
+import { useAuth } from "@/contexts/auth-context"
+import { apiService } from "@/lib/api"
+import { TimeInput } from "@/components/ui/time-input"
 
 interface CreateRideForm {
   startingFrom: string
@@ -44,34 +47,52 @@ export default function CreateRidePage() {
 
   const router = useRouter()
   const { toast } = useToast()
+  const { user, token } = useAuth()
 
   const { popularLocations, searchLocations } = useLocation()
   const [startingSuggestions, setStartingSuggestions] = useState<any[]>([])
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([])
   const [showStartingSuggestions, setShowStartingSuggestions] = useState(false)
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
+  
+  // Track valid selections
+  const [validSelections, setValidSelections] = useState({
+    startingFrom: false,
+    goingTo: false
+  })
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.startingFrom) {
       newErrors.startingFrom = "Starting location is required"
+    } else if (!validSelections.startingFrom) {
+      clearInvalidLocation("startingFrom")
+      newErrors.startingFrom = "Location cleared. Please select a valid location from the dropdown suggestions"
     }
 
     if (!formData.goingTo) {
       newErrors.goingTo = "Destination is required"
+    } else if (!validSelections.goingTo) {
+      clearInvalidLocation("goingTo")
+      newErrors.goingTo = "Location cleared. Please select a valid location from the dropdown suggestions"
     }
 
     if (formData.startingFrom === formData.goingTo) {
       newErrors.goingTo = "Destination must be different from starting location"
     }
 
+    // Check if travel date is in the past
+    if (formData.travelDate < new Date()) {
+      newErrors.travelDate = "Travel date cannot be in the past"
+    }
+
     if (!formData.departureStartTime) {
-      newErrors.departureStartTime = "Departure start time is required"
+      newErrors.departureStartTime = "Preferred earliest start time is required"
     }
 
     if (!formData.departureEndTime) {
-      newErrors.departureEndTime = "Departure end time is required"
+      newErrors.departureEndTime = "Preferred latest start time is required"
     }
 
     if (
@@ -79,7 +100,7 @@ export default function CreateRidePage() {
       formData.departureEndTime &&
       formData.departureStartTime >= formData.departureEndTime
     ) {
-      newErrors.departureEndTime = "End time must be after start time"
+      newErrors.departureEndTime = "Latest start time must be after earliest start time"
     }
 
     if (formData.availableSeats < 1 || formData.availableSeats > 8) {
@@ -99,18 +120,56 @@ export default function CreateRidePage() {
 
     if (!validateForm()) return
 
+    if (!token) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create a ride.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Format data for backend API
+      const rideData = {
+        startingFrom: formData.startingFrom,
+        goingTo: formData.goingTo,
+        travelDate: formData.travelDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        departureStartTime: formData.departureStartTime,
+        departureEndTime: formData.departureEndTime,
+        availableSeats: formData.availableSeats,
+        suggestedContribution: formData.suggestedContribution,
+        currency: "USD",
+      }
 
-    toast({
-      title: "Ride posted successfully!",
-      description: "Your ride has been created and is now visible to other students.",
-    })
+      const response = await apiService.createRide(token, rideData)
 
-    router.push("/rides")
-    setIsLoading(false)
+      if (response.error) {
+        toast({
+          title: "Failed to create ride",
+          description: response.error,
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Ride posted successfully!",
+        description: "Your ride has been created and is now visible to other students.",
+      })
+
+      router.push("/rides")
+    } catch (error) {
+      toast({
+        title: "An error occurred",
+        description: "Failed to create ride. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (field: keyof CreateRideForm, value: any) => {
@@ -121,7 +180,8 @@ export default function CreateRidePage() {
   }
 
   const handleLocationSearch = async (query: string, field: "startingFrom" | "goingTo") => {
-    if (query.length > 0) {
+    // Only search if query has at least 2 characters
+    if (query.length >= 2) {
       try {
         const locations = await searchLocations(query)
         
@@ -149,6 +209,40 @@ export default function CreateRidePage() {
 
   const handleLocationSelect = (location: any, field: "startingFrom" | "goingTo") => {
     setFormData((prev) => ({ ...prev, [field]: location.displayName }))
+    setValidSelections((prev) => ({ ...prev, [field]: true }))
+    setStartingSuggestions([])
+    setDestinationSuggestions([])
+    setShowStartingSuggestions(false)
+    setShowDestinationSuggestions(false)
+    // Clear any validation errors for this field
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const handleLocationInputChange = (value: string, field: "startingFrom" | "goingTo") => {
+    // If user is typing but hasn't selected from dropdown, mark as invalid
+    setValidSelections((prev) => ({ ...prev, [field]: false }))
+    
+    // If backspace pressed, clear the field and reset validation
+    if (value.length === 0) {
+      handleInputChange(field, "")
+      setValidSelections((prev) => ({ ...prev, [field]: false }))
+      setStartingSuggestions([])
+      setDestinationSuggestions([])
+      setShowStartingSuggestions(false)
+      setShowDestinationSuggestions(false)
+      return
+    }
+    
+    // Update form value and trigger search
+    handleInputChange(field, value)
+    handleLocationSearch(value, field)
+  }
+
+  const clearInvalidLocation = (field: "startingFrom" | "goingTo") => {
+    handleInputChange(field, "")
+    setValidSelections((prev) => ({ ...prev, [field]: false }))
     setStartingSuggestions([])
     setDestinationSuggestions([])
     setShowStartingSuggestions(false)
@@ -183,32 +277,40 @@ export default function CreateRidePage() {
                       id="startingFrom"
                       placeholder="Enter starting location"
                       value={formData.startingFrom}
-                      onChange={(e) => {
-                        handleInputChange("startingFrom", e.target.value)
-                        handleLocationSearch(e.target.value, "startingFrom")
-                      }}
+                      onChange={(e) => handleLocationInputChange(e.target.value, "startingFrom")}
+                      className={`pl-10 ${errors.startingFrom ? "border-red-500" : ""} ${!validSelections.startingFrom && formData.startingFrom ? "border-amber-500 bg-amber-50" : ""}`}
                       onFocus={() => {
-                        if (formData.startingFrom.length > 0) {
+                        if (formData.startingFrom.length >= 2) {
                           handleLocationSearch(formData.startingFrom, "startingFrom")
                         }
                       }}
                       onBlur={() => {
                         setTimeout(() => setShowStartingSuggestions(false), 200)
                       }}
-                      className={`pl-10 ${errors.startingFrom ? "border-red-500" : ""}`}
                     />
                   </div>
                   {showStartingSuggestions && startingSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
-                      {startingSuggestions.map((location) => (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto mt-1">
+                      {startingSuggestions.map((location, index) => (
                         <div
                           key={location._id}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors ${
+                            index === 0 ? 'rounded-t-lg' : ''
+                          } ${
+                            index === startingSuggestions.length - 1 ? 'rounded-b-lg border-b-0' : 'border-b border-gray-100'
+                          }`}
                           onMouseDown={() => handleLocationSelect(location, "startingFrom")}
                         >
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm">{location.displayName}</span>
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-blue-600" />
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {location.displayName}
+                              </span>
+                              <div className="text-xs text-gray-500 mt-1">
+                                All areas in {location.city}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -225,32 +327,40 @@ export default function CreateRidePage() {
                       id="goingTo"
                       placeholder="Enter destination"
                       value={formData.goingTo}
-                      onChange={(e) => {
-                        handleInputChange("goingTo", e.target.value)
-                        handleLocationSearch(e.target.value, "goingTo")
-                      }}
+                      onChange={(e) => handleLocationInputChange(e.target.value, "goingTo")}
                       onFocus={() => {
-                        if (formData.goingTo.length > 0) {
+                        if (formData.goingTo.length >= 2) {
                           handleLocationSearch(formData.goingTo, "goingTo")
                         }
                       }}
                       onBlur={() => {
                         setTimeout(() => setShowDestinationSuggestions(false), 200)
                       }}
-                      className={`pl-10 ${errors.goingTo ? "border-red-500" : ""}`}
+                      className={`pl-10 ${errors.goingTo ? "border-red-500" : ""} ${!validSelections.goingTo && formData.goingTo ? "border-amber-500 bg-amber-50" : ""}`}
                     />
                   </div>
                   {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
-                      {destinationSuggestions.map((location) => (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto mt-1">
+                      {destinationSuggestions.map((location, index) => (
                         <div
                           key={location._id}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors ${
+                            index === 0 ? 'rounded-t-lg' : ''
+                          } ${
+                            index === destinationSuggestions.length - 1 ? 'rounded-b-lg border-b-0' : 'border-b border-gray-100'
+                          }`}
                           onMouseDown={() => handleLocationSelect(location, "goingTo")}
                         >
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm">{location.displayName}</span>
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-blue-600" />
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {location.displayName}
+                              </span>
+                              <div className="text-xs text-gray-500 mt-1">
+                                All areas in {location.city}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -264,53 +374,51 @@ export default function CreateRidePage() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Travel Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(formData.travelDate, "PPP")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.travelDate}
-                        onSelect={(date) => date && handleInputChange("travelDate", date)}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(formData.travelDate, "PPP")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.travelDate}
+                          onSelect={(date) => date && handleInputChange("travelDate", date)}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                  </div>
+                  {errors.travelDate && <p className="text-sm text-red-500">{errors.travelDate}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="departureStartTime">Departure Start</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="departureStartTime"
-                      type="time"
-                      value={formData.departureStartTime}
-                      onChange={(e) => handleInputChange("departureStartTime", e.target.value)}
-                      className={`pl-10 ${errors.departureStartTime ? "border-red-500" : ""}`}
-                    />
-                  </div>
-                  {errors.departureStartTime && <p className="text-sm text-red-500">{errors.departureStartTime}</p>}
+                  <Label htmlFor="departureStartTime">Preferred Start Time (Earliest)</Label>
+                  <TimeInput
+                    key="start-time"
+                    value={formData.departureStartTime}
+                    onChange={(value) => handleInputChange("departureStartTime", value)}
+                    placeholder="Earliest departure time"
+                    error={errors.departureStartTime}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="departureEndTime">Departure End</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="departureEndTime"
-                      type="time"
-                      value={formData.departureEndTime}
-                      onChange={(e) => handleInputChange("departureEndTime", e.target.value)}
-                      className={`pl-10 ${errors.departureEndTime ? "border-red-500" : ""}`}
-                    />
-                  </div>
-                  {errors.departureEndTime && <p className="text-sm text-red-500">{errors.departureEndTime}</p>}
+                  <Label htmlFor="departureEndTime">Preferred Start Time (Latest)</Label>
+                  <TimeInput
+                    key="end-time"
+                    value={formData.departureEndTime}
+                    onChange={(value) => handleInputChange("departureEndTime", value)}
+                    placeholder="Latest departure time"
+                    error={errors.departureEndTime}
+                    required
+                  />
                 </div>
               </div>
 
@@ -347,24 +455,17 @@ export default function CreateRidePage() {
                         type="number"
                         min="0"
                         max="1000"
-                        value={formData.suggestedContribution}
+                        value={formData.suggestedContribution === 0 ? "" : formData.suggestedContribution}
                         onChange={(e) =>
-                          handleInputChange("suggestedContribution", Number.parseFloat(e.target.value) || 0)
+                          handleInputChange("suggestedContribution", e.target.value === "" ? 0 : Number.parseFloat(e.target.value) || 0)
                         }
                         className={`pl-10 ${errors.suggestedContribution ? "border-red-500" : ""}`}
-                        placeholder="0"
+                        placeholder="Enter amount (optional)"
                       />
                     </div>
-                    <Select value={formData.currency} onValueChange={(value) => handleInputChange("currency", value)}>
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="CAD">CAD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center px-3 py-2 bg-gray-50 border rounded-md text-sm text-gray-600">
+                      USD
+                    </div>
                   </div>
                   {errors.suggestedContribution && (
                     <p className="text-sm text-red-500">{errors.suggestedContribution}</p>
@@ -386,14 +487,21 @@ export default function CreateRidePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {formData.departureStartTime || "00:00"} - {formData.departureEndTime || "00:00"}
+                    {formData.departureStartTime && formData.departureEndTime 
+                      ? `Flexible start time: ${formData.departureStartTime} - ${formData.departureEndTime}`
+                      : "Preferred time range to be specified"
+                    }
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    {formData.availableSeats} seats available
+                    {formData.availableSeats} seat{formData.availableSeats === 1 ? '' : 's'}
                   </div>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />${formData.suggestedContribution} {formData.currency}
+                    <DollarSign className="w-4 h-4" />
+                    {formData.suggestedContribution > 0 
+                      ? `${formData.suggestedContribution} USD`
+                      : "Free"
+                    }
                   </div>
                 </div>
               </div>

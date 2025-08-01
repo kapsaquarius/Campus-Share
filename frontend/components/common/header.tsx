@@ -13,22 +13,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Car, Home, Users, User, LogOut, Menu, X } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Bell, Car, Home, Users, User, LogOut, Menu, X, Plus, Heart } from "lucide-react"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Header() {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
-  // Mock user for testing - remove this when re-enabling auth
-  const mockUser = user || { name: "Test User" }
+
 
   const navigation = [
-    { name: "Rides", href: "/rides", icon: Car },
-    { name: "Subleases", href: "/subleases", icon: Home },
-    { name: "Roommates", href: "/roommates", icon: Users },
+    { name: "Find Rides", href: "/rides", icon: Car },
+    { name: "Find Subleases", href: "/subleases", icon: Home },
+    { name: "Find Roommates", href: "/roommates", icon: Users },
   ]
 
   const handleLogout = () => {
@@ -49,26 +49,36 @@ export function Header() {
             <span className="text-xl font-bold text-gray-900">CampusShare</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </nav>
+          {/* Desktop Navigation - Only show when authenticated */}
+          {user && (
+            <nav className="hidden md:flex space-x-8">
+              {navigation.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center space-x-1 transition-colors relative ${
+                      isActive 
+                        ? "text-blue-600 font-medium" 
+                        : "text-gray-600 hover:text-blue-600"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
+                    {isActive && (
+                      <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+                    )}
+                  </Link>
+                )
+              })}
+            </nav>
+          )}
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
-            {mockUser ? (
+            {user ? (
               <>
                 {/* Notifications */}
                 <Link href="/notifications" className="relative">
@@ -90,7 +100,7 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                       <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">{mockUser.name}</span>
+                      <span className="hidden sm:inline">{user.name}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -101,9 +111,21 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/rides/create" className="flex items-center space-x-2">
+                        <Plus className="w-4 h-4" />
+                        <span>Create Ride</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/rides/my-rides" className="flex items-center space-x-2">
                         <Car className="w-4 h-4" />
                         <span>My Rides</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/rides/my-interested" className="flex items-center space-x-2">
+                        <Heart className="w-4 h-4" />
+                        <span>My Interested Rides</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -144,17 +166,22 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
+        {/* Mobile Navigation - Only show when authenticated */}
+        {mobileMenuOpen && user && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-2">
               {navigation.map((item) => {
                 const Icon = item.icon
+                const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
+                      isActive
+                        ? "text-blue-600 bg-blue-50 font-medium border-l-4 border-blue-600"
+                        : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Icon className="w-4 h-4" />

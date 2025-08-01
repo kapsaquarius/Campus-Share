@@ -57,7 +57,7 @@ export default function LoginPage() {
         title: "Welcome back!",
         description: "You have been successfully logged in.",
       })
-      router.push("/")
+      router.push("/rides")
     } catch (error) {
       toast({
         title: "Login failed",

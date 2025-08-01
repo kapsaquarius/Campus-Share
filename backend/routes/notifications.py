@@ -17,7 +17,19 @@ def get_notifications():
         notifications = get_collection('notifications')
         user_notifications = list(notifications.find({'userId': ObjectId(user['_id'])}).sort('createdAt', -1))
         
-        formatted_notifications = format_object_id_list(user_notifications)
+        # Format notifications manually to handle ObjectId serialization
+        formatted_notifications = []
+        for notif in user_notifications:
+            formatted_notif = {
+                '_id': str(notif['_id']),
+                'type': notif['type'],
+                'title': notif['title'], 
+                'message': notif['message'],
+                'read': notif.get('read', False),
+                'createdAt': notif['createdAt'].isoformat() if hasattr(notif['createdAt'], 'isoformat') else str(notif['createdAt']),
+                'relatedId': str(notif['relatedId']) if notif.get('relatedId') else None
+            }
+            formatted_notifications.append(formatted_notif)
         
         return jsonify({'notifications': formatted_notifications}), 200
         
@@ -44,14 +56,14 @@ def get_unread_count():
         return jsonify({'error': f'Failed to get unread count: {str(e)}'}), 400
 
 @notifications_bp.route('/<notification_id>/read', methods=['PUT'])
-def mark_as_read():
+def mark_as_read(notification_id):
     """Mark a notification as read"""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
     
     try:
-        notification_id = ObjectId(request.view_args['notification_id'])
+        notification_id = ObjectId(notification_id)
         notifications = get_collection('notifications')
         
         result = notifications.update_one(
@@ -87,26 +99,4 @@ def mark_all_as_read():
     except Exception as e:
         return jsonify({'error': f'Failed to mark notifications as read: {str(e)}'}), 400
 
-@notifications_bp.route('/<notification_id>', methods=['DELETE'])
-def delete_notification():
-    """Delete a notification"""
-    user = get_current_user()
-    if not user:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    try:
-        notification_id = ObjectId(request.view_args['notification_id'])
-        notifications = get_collection('notifications')
-        
-        result = notifications.delete_one({
-            '_id': notification_id,
-            'userId': ObjectId(user['_id'])
-        })
-        
-        if result.deleted_count == 0:
-            return jsonify({'error': 'Notification not found'}), 404
-        
-        return jsonify({'message': 'Notification deleted'}), 200
-        
-    except Exception as e:
-        return jsonify({'error': f'Failed to delete notification: {str(e)}'}), 400 
+# Delete notification endpoint removed - notifications are hidden when read 

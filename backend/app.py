@@ -26,8 +26,12 @@ app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['MONGODB_URI'] = config.MONGODB_URI
 app.config['DEBUG'] = config.DEBUG
 
-# Enable CORS
-CORS(app, origins=config.CORS_ORIGINS, supports_credentials=True)
+# Enable CORS with all necessary methods
+CORS(app, 
+     origins=config.CORS_ORIGINS, 
+     supports_credentials=True,
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'])
 
 # Initialize database
 init_db()

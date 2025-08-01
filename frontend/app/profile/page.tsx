@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Phone, MessageCircle, Edit, Save, X, Calendar, Mail, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
+import { CountryPhoneInput } from "@/components/ui/country-phone-input"
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
@@ -21,7 +22,6 @@ export default function ProfilePage() {
   const currentUser = user
 
   const [formData, setFormData] = useState({
-    name: currentUser?.name || "",
     phoneNumber: currentUser?.phoneNumber || "",
     whatsappNumber: currentUser?.whatsappNumber || "",
   })
@@ -51,7 +51,6 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setFormData({
-      name: currentUser?.name || "",
       phoneNumber: currentUser?.phoneNumber || "",
       whatsappNumber: currentUser?.whatsappNumber || "",
     })
@@ -80,7 +79,7 @@ export default function ProfilePage() {
             <CardContent className="p-8">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src="/placeholder.svg?height=96&width=96&text=Profile" alt={currentUser?.name || "Profile"} />
+                  <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=face&auto=format&q=80" alt={currentUser?.name || "Profile"} />
                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                     {getInitials(currentUser?.name || "User")}
                   </AvatarFallback>
@@ -157,44 +156,66 @@ export default function ProfilePage() {
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-gray-50" : ""}
-                  placeholder="Enter your full name"
+                  value={currentUser?.name || ""}
+                  disabled
+                  className="bg-gray-50"
+                  placeholder="No name set"
                 />
+                <p className="text-xs text-gray-500">Name cannot be changed</p>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))}
-                      disabled={!isEditing}
-                      className={`pl-10 ${!isEditing ? "bg-gray-50" : ""}`}
-                      placeholder="+1-555-123-4567"
-                    />
-                  </div>
-                </div>
+              <div className="grid sm:grid-cols-1 gap-4">
+                {!isEditing ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="phoneNumber"
+                          value={formData.phoneNumber}
+                          disabled
+                          className="pl-10 bg-gray-50"
+                          placeholder="No phone number set"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-                  <div className="relative">
-                    <MessageCircle className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="whatsappNumber"
-                      value={formData.whatsappNumber}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, whatsappNumber: e.target.value }))}
-                      disabled={!isEditing}
-                      className={`pl-10 ${!isEditing ? "bg-gray-50" : ""}`}
-                      placeholder="+1-555-123-4567"
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                      <div className="relative">
+                        <MessageCircle className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="whatsappNumber"
+                          value={formData.whatsappNumber}
+                          disabled
+                          className="pl-10 bg-gray-50"
+                          placeholder="No WhatsApp number set"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CountryPhoneInput
+                      id="phoneNumber"
+                      label="Phone Number"
+                      value={formData.phoneNumber}
+                      onChange={(value) => setFormData((prev) => ({ ...prev, phoneNumber: value }))}
+                      placeholder="Enter phone number"
+                      helpText="This will be shared with interested riders to contact you directly"
                     />
-                  </div>
-                </div>
+
+                    <CountryPhoneInput
+                      id="whatsappNumber"
+                      label="WhatsApp Number"
+                      value={formData.whatsappNumber}
+                      onChange={(value) => setFormData((prev) => ({ ...prev, whatsappNumber: value }))}
+                      placeholder="Enter WhatsApp number"
+                      helpText="This will be shared with interested riders for WhatsApp communication"
+                    />
+                  </>
+                )}
               </div>
 
               {isEditing && (

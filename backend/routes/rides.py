@@ -12,6 +12,9 @@ rides_bp = Blueprint('rides', __name__)
 def search_rides():
     """Smart ride search with intelligent filtering and ranking"""
     try:
+        # Get current user (optional - search might work for unauthenticated users)
+        current_user = get_current_user()
+        
         # Handle both GET and POST requests
         if request.method == 'GET':
             # Extract parameters from query string
@@ -38,7 +41,9 @@ def search_rides():
             'preferredEndTime': preferred_time_end
         }
         
-        scored_rides = search_rides_with_scoring(search_criteria)
+        # Pass user ID to exclude rides user has already expressed interest in
+        user_id = current_user['_id'] if current_user else None
+        scored_rides = search_rides_with_scoring(search_criteria, user_id)
         
         if not scored_rides:
             return jsonify({
@@ -141,14 +146,14 @@ def rides():
             return jsonify({'error': f'Failed to create ride: {str(e)}'}), 400
 
 @rides_bp.route('/<ride_id>/interest', methods=['POST'])
-def express_interest():
+def express_interest(ride_id):
     """Express interest in a ride with notification"""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
     
     try:
-        ride_id = ObjectId(request.view_args['ride_id'])
+        ride_id = ObjectId(ride_id)
         
         # Get ride and provider info in one query using aggregation
         ride_posts = get_collection('ride_posts')
@@ -173,7 +178,11 @@ def express_interest():
         ride_data = ride_with_provider[0]
         provider_data = ride_data['provider']
         
-        # Check if already interested - this is the only necessary check
+        # Check if user is trying to express interest in their own ride
+        if str(ride_data['userId']) == str(user['_id']):
+            return jsonify({'error': 'You cannot express interest in your own ride'}), 400
+        
+        # Check if already interested
         ride_interests = get_collection('ride_interests')
         existing_interest = ride_interests.find_one({
             'rideId': ride_id,
@@ -200,13 +209,133 @@ def express_interest():
             'message': 'Interest expressed successfully',
             'rideProvider': {
                 'name': provider_data['name'],
-                'phoneNumber': provider_data.get('phoneNumber', ''),
-                'whatsappNumber': provider_data.get('whatsappNumber', '')
+                'phoneNumber': provider_data.get('phone', ''),  # Database stores as 'phone'
+                'whatsappNumber': provider_data.get('whatsapp', '')  # Database stores as 'whatsapp'
             }
         }), 200
         
     except Exception as e:
         return jsonify({'error': f'Failed to express interest: {str(e)}'}), 400
+
+@rides_bp.route('/<ride_id>/interested-users', methods=['GET'])
+def get_interested_users(ride_id):
+    """Get list of users interested in a specific ride"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        ride_id = ObjectId(ride_id)
+
+        # Check if user owns the ride
+        ride_posts = get_collection('ride_posts')
+        ride = ride_posts.find_one({'_id': ride_id, 'userId': ObjectId(user['_id'])})
+
+        if not ride:
+            return jsonify({'error': 'Ride not found or you do not own this ride'}), 404
+
+        # Get interested users with their details
+        ride_interests = get_collection('ride_interests')
+
+        # Use aggregation to get interested users with their full details
+        pipeline = [
+            {'$match': {'rideId': ride_id, 'status': 'interested'}},
+            {'$lookup': {
+                'from': 'users',
+                'localField': 'interestedUserId',
+                'foreignField': '_id',
+                'as': 'user'
+            }},
+            {'$unwind': '$user'},
+            {'$project': {
+                '_id': {'$toString': '$_id'},
+                'createdAt': 1,
+                'user': {
+                    '_id': {'$toString': '$user._id'},
+                    'name': '$user.name',
+                    'username': '$user.username',
+                    'email': '$user.email',
+                    'phoneNumber': '$user.phone',  # Database stores as 'phone'
+                    'whatsappNumber': '$user.whatsapp'  # Database stores as 'whatsapp'
+                }
+            }},
+            {'$sort': {'createdAt': -1}}  # Most recent first
+        ]
+
+        interested_users = list(ride_interests.aggregate(pipeline))
+
+        return jsonify({
+            'interestedUsers': interested_users,
+            'totalCount': len(interested_users)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to get interested users: {str(e)}'}), 400
+
+
+@rides_bp.route('/my-interested', methods=['GET'])
+def get_my_interested_rides():
+    """Get rides that the current user has expressed interest in"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        ride_interests = get_collection('ride_interests')
+        ride_posts = get_collection('ride_posts')
+
+        # Get rides the user is interested in with full details
+        pipeline = [
+            {'$match': {'interestedUserId': ObjectId(user['_id']), 'status': 'interested'}},
+            {'$lookup': {
+                'from': 'ride_posts',
+                'localField': 'rideId',
+                'foreignField': '_id',
+                'as': 'ride'
+            }},
+            {'$unwind': '$ride'},
+            {'$lookup': {
+                'from': 'users',
+                'localField': 'ride.userId',
+                'foreignField': '_id',
+                'as': 'driver'
+            }},
+            {'$unwind': '$driver'},
+            {'$project': {
+                '_id': {'$toString': '$_id'},
+                'interestedAt': '$createdAt',
+                'ride': {
+                    '_id': {'$toString': '$ride._id'},
+                    'startingFrom': '$ride.startingFrom',
+                    'goingTo': '$ride.goingTo',
+                    'travelDate': '$ride.travelDate',
+                    'departureStartTime': '$ride.departureStartTime',
+                    'departureEndTime': '$ride.departureEndTime',
+                    'availableSeats': '$ride.availableSeats',
+                    'seatsRemaining': '$ride.seatsRemaining',
+                    'suggestedContribution': '$ride.suggestedContribution',
+                    'status': '$ride.status',
+                    'createdAt': '$ride.createdAt'
+                },
+                'driver': {
+                    'name': '$driver.name',
+                    'username': '$driver.username',
+                    'phoneNumber': '$driver.phone',
+                    'whatsappNumber': '$driver.whatsapp'
+                }
+            }},
+            {'$sort': {'interestedAt': -1}}  # Most recent interest first
+        ]
+
+        interested_rides = list(ride_interests.aggregate(pipeline))
+
+        return jsonify({
+            'interestedRides': interested_rides,
+            'totalCount': len(interested_rides)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to get interested rides: {str(e)}'}), 400
 
 @rides_bp.route('/my-rides', methods=['GET'])
 def get_my_rides():
@@ -244,14 +373,14 @@ def get_my_rides():
         return jsonify({'error': f'Failed to get rides: {str(e)}'}), 400
 
 @rides_bp.route('/<ride_id>', methods=['PUT'])
-def update_ride():
+def update_ride(ride_id):
     """Update ride posting with notification to interested users"""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
     
     try:
-        ride_id = ObjectId(request.view_args['ride_id'])
+        ride_id = ObjectId(ride_id)
         data = request.get_json()
         
         # Update ride directly - frontend already validated ownership
@@ -267,15 +396,17 @@ def update_ride():
         if 'goingTo' in data:
             update_data['goingTo'] = data['goingTo']
         if 'travelDate' in data:
-            update_data['travelDate'] = datetime.strptime(data['travelDate'], '%Y-%m-%d').date()
+            update_data['travelDate'] = data['travelDate']  # Keep as string for consistency
         if 'departureStartTime' in data:
             update_data['departureStartTime'] = data['departureStartTime']
         if 'departureEndTime' in data:
             update_data['departureEndTime'] = data['departureEndTime']
-        if 'seatsRemaining' in data:
-            update_data['seatsRemaining'] = data['seatsRemaining']
+        if 'availableSeats' in data:
+            update_data['availableSeats'] = data['availableSeats']
         if 'suggestedContribution' in data:
             update_data['suggestedContribution'] = data['suggestedContribution']
+        if 'additionalDetails' in data:
+            update_data['additionalDetails'] = data['additionalDetails']
         
         result = ride_posts.update_one(
             {'_id': ride_id, 'userId': ObjectId(user['_id'])}, 
@@ -294,17 +425,20 @@ def update_ride():
         return jsonify({'message': 'Ride updated successfully'}), 200
         
     except Exception as e:
+        print(f"Update ride error: {str(e)}")  # Debug logging
+        import traceback
+        traceback.print_exc()  # Print full stack trace
         return jsonify({'error': f'Failed to update ride: {str(e)}'}), 400
 
 @rides_bp.route('/<ride_id>', methods=['DELETE'])
-def delete_ride():
+def delete_ride(ride_id):
     """Delete ride posting with notification to interested users"""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
     
     try:
-        ride_id = ObjectId(request.view_args['ride_id'])
+        ride_id = ObjectId(ride_id)
         
         # Get ride info for notification before deletion
         ride_posts = get_collection('ride_posts')

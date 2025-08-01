@@ -5,11 +5,11 @@ import { useNotifications } from "@/contexts/notification-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Bell, Car, Home, Trash2, Check, CheckCheck } from "lucide-react"
+import { Bell, Car, Home, Check, CheckCheck } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 export default function NotificationsPage() {
-  const { notifications, markAsRead, markAllAsRead, deleteNotification, loading } = useNotifications()
+  const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -24,8 +24,8 @@ export default function NotificationsPage() {
     }
   }
 
-  const unreadNotifications = notifications.filter((n) => !n.isRead)
-  const readNotifications = notifications.filter((n) => n.isRead)
+  const unreadNotifications = notifications.filter((n) => !n.read)
+  // Only show unread notifications - read notifications are hidden
 
   return (
     <ProtectedRoute>
@@ -44,13 +44,13 @@ export default function NotificationsPage() {
             )}
           </div>
 
-          {notifications.length === 0 ? (
+          {unreadNotifications.length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
-                <Bell className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No notifications yet</h3>
+                <CheckCheck className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Notifications</h3>
                 <p className="text-gray-600">
-                  You'll see notifications here when other students interact with your posts.
+                  You're all caught up! When you have new activity, it will appear here.
                 </p>
               </CardContent>
             </Card>
@@ -59,7 +59,7 @@ export default function NotificationsPage() {
               {/* Unread Notifications */}
               {unreadNotifications.length > 0 && (
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Unread ({unreadNotifications.length})</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Notifications ({unreadNotifications.length})</h2>
                   <div className="space-y-3">
                     {unreadNotifications.map((notification) => (
                       <Card key={notification._id} className="border-l-4 border-l-blue-500 bg-blue-50/50">
@@ -82,9 +82,7 @@ export default function NotificationsPage() {
                               <Button variant="ghost" size="sm" onClick={() => markAsRead(notification._id)}>
                                 <Check className="w-4 h-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => deleteNotification(notification._id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+
                             </div>
                           </div>
                         </CardContent>
@@ -94,35 +92,7 @@ export default function NotificationsPage() {
                 </div>
               )}
 
-              {/* Read Notifications */}
-              {readNotifications.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Read ({readNotifications.length})</h2>
-                  <div className="space-y-3">
-                    {readNotifications.map((notification) => (
-                      <Card key={notification._id} className="opacity-75">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              {getNotificationIcon(notification.type)}
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 mb-1">{notification.title}</h3>
-                                <p className="text-gray-700 mb-2">{notification.message}</p>
-                                <p className="text-sm text-gray-500">
-                                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                                </p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => deleteNotification(notification._id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Read notifications are hidden - only showing unread notifications */}
             </div>
           )}
         </div>

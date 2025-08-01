@@ -5,8 +5,22 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { InterestedUsersModal } from '@/components/InterestedUsersModal';
+import { ProtectedRoute } from '@/components/common/protected-route';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiService } from '@/lib/api';
+import { useLocation } from '@/contexts/location-context';
+import { TimeInput } from '@/components/ui/time-input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 interface Ride {
   _id: string;
@@ -26,14 +40,54 @@ export default function MyRidesPage() {
   const { user, token } = useAuth();
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingRide, setEditingRide] = useState<Ride | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    startingFrom: '',
+    goingTo: '',
+    travelDate: new Date(),
+    departureStartTime: '',
+    departureEndTime: '',
+    availableSeats: 1,
+    suggestedContribution: 0,
+    additionalDetails: ''
+  });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [interestedUsersModal, setInterestedUsersModal] = useState<{
+    isOpen: boolean
+    rideId: string
+    rideInfo: {
+      startingFrom: string
+      goingTo: string
+      travelDate: string
+    }
+  }>({
+    isOpen: false,
+    rideId: '',
+    rideInfo: { startingFrom: '', goingTo: '', travelDate: '' }
+  });
+  const { searchLocations, locationSuggestions } = useLocation();
+  const [showStartSuggestions, setShowStartSuggestions] = useState(false);
+  const [showEndSuggestions, setShowEndSuggestions] = useState(false);
+  const [validSelections, setValidSelections] = useState({
+    startingFrom: true,
+    goingTo: true
+  });
 
   useEffect(() => {
     if (token) {
-      fetchMyRides();
+      fetchMyRides(true);
     }
   }, [token]);
 
-  const fetchMyRides = async () => {
+  const fetchMyRides = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+    
     try {
       const response = await fetch(`http://localhost:5000/api/rides/my-rides`, {
         headers: {
@@ -51,30 +105,102 @@ export default function MyRidesPage() {
     } catch (error) {
       toast.error('Error fetching rides');
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
+  const handleEditRide = (ride: Ride) => {
+    setEditingRide(ride);
+    setEditFormData({
+      startingFrom: ride.startingFrom,
+      goingTo: ride.goingTo,
+      travelDate: new Date(ride.travelDate),
+      departureStartTime: ride.departureStartTime,
+      departureEndTime: ride.departureEndTime,
+      availableSeats: ride.availableSeats,
+      suggestedContribution: ride.suggestedContribution,
+      additionalDetails: ''
+    });
+    setValidSelections({ startingFrom: true, goingTo: true });
+    setEditDialogOpen(true);
+  };
+
+  const handleLocationSelect = (location: any, field: 'startingFrom' | 'goingTo') => {
+    setEditFormData(prev => ({ ...prev, [field]: location.displayName }));
+    setValidSelections(prev => ({ ...prev, [field]: true }));
+    if (field === 'startingFrom') setShowStartSuggestions(false);
+    if (field === 'goingTo') setShowEndSuggestions(false);
+  };
+
+  const handleLocationInputChange = (value: string, field: 'startingFrom' | 'goingTo') => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+    setValidSelections(prev => ({ ...prev, [field]: false }));
+    
+    if (value.length >= 2) {
+      searchLocations(value);
+      if (field === 'startingFrom') setShowStartSuggestions(true);
+      if (field === 'goingTo') setShowEndSuggestions(true);
+    } else {
+      if (field === 'startingFrom') setShowStartSuggestions(false);
+      if (field === 'goingTo') setShowEndSuggestions(false);
+    }
+  };
+
+  const updateRide = async () => {
+    if (!editingRide || !token) return;
+
+    // Validate required fields
+    if (!editFormData.startingFrom || !editFormData.goingTo || !validSelections.startingFrom || !validSelections.goingTo) {
+      toast.error('Please select valid locations from the dropdown suggestions');
+      return;
+    }
+
+    if (!editFormData.departureStartTime || !editFormData.departureEndTime) {
+      toast.error('Please provide departure times');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      const updateData = {
+        startingFrom: editFormData.startingFrom,
+        goingTo: editFormData.goingTo,
+        travelDate: format(editFormData.travelDate, 'yyyy-MM-dd'),
+        departureStartTime: editFormData.departureStartTime,
+        departureEndTime: editFormData.departureEndTime,
+        availableSeats: editFormData.availableSeats,
+        suggestedContribution: editFormData.suggestedContribution,
+        additionalDetails: editFormData.additionalDetails
+      };
+
+      await apiService.updateRide(token, editingRide._id, updateData);
+      toast.success('Ride updated successfully');
+      setEditDialogOpen(false);
+      setEditingRide(null);
+      // Refresh the rides list to show updated data
+      await fetchMyRides();
+    } catch (error) {
+      toast.error('Failed to update ride');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const deleteRide = async (rideId: string) => {
-    if (!confirm('Are you sure you want to delete this ride?')) return;
+    if (!token) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/rides/${rideId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Ride deleted successfully');
-        fetchMyRides();
-      } else {
-        toast.error('Failed to delete ride');
-      }
+      await apiService.deleteRide(token, rideId);
+      toast.success('Ride deleted successfully');
+      // Refresh the rides list to show updated data
+      await fetchMyRides();
     } catch (error) {
-      toast.error('Error deleting ride');
+      toast.error('Failed to delete ride');
     }
   };
 
@@ -106,10 +232,21 @@ export default function MyRidesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Rides</h1>
-        <p className="text-gray-600">Manage your posted rides and track interest</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Rides</h1>
+            <p className="text-gray-600">Manage your posted rides and track interest</p>
+          </div>
+          {isRefreshing && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              Updating...
+            </div>
+          )}
+        </div>
       </div>
 
       {rides.length === 0 ? (
@@ -139,21 +276,209 @@ export default function MyRidesPage() {
                       {ride.status}
                     </Badge>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.location.href = `/rides/edit/${ride._id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteRide(ride._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Dialog open={editDialogOpen && editingRide?._id === ride._id} onOpenChange={setEditDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditRide(ride)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Edit Ride</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Starting From</Label>
+                                <div className="relative">
+                                  <Input
+                                    value={editFormData.startingFrom}
+                                    onChange={(e) => handleLocationInputChange(e.target.value, 'startingFrom')}
+                                    placeholder="Enter starting location"
+                                    className={!validSelections.startingFrom && editFormData.startingFrom ? 'border-amber-500 bg-amber-50' : ''}
+                                  />
+                                  {showStartSuggestions && locationSuggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                      {locationSuggestions.map((location, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                          onMouseDown={() => handleLocationSelect(location, 'startingFrom')}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <MapPin className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {location.displayName}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Going To</Label>
+                                <div className="relative">
+                                  <Input
+                                    value={editFormData.goingTo}
+                                    onChange={(e) => handleLocationInputChange(e.target.value, 'goingTo')}
+                                    placeholder="Enter destination"
+                                    className={!validSelections.goingTo && editFormData.goingTo ? 'border-amber-500 bg-amber-50' : ''}
+                                  />
+                                  {showEndSuggestions && locationSuggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                      {locationSuggestions.map((location, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                          onMouseDown={() => handleLocationSelect(location, 'goingTo')}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <MapPin className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {location.displayName}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Travel Date</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="w-full justify-start text-left font-normal"
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {editFormData.travelDate ? format(editFormData.travelDate, 'PPP') : 'Select date'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={editFormData.travelDate}
+                                    onSelect={(date) => date && setEditFormData(prev => ({ ...prev, travelDate: date }))}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Departure Start Time</Label>
+                                <TimeInput
+                                  value={editFormData.departureStartTime}
+                                  onChange={(value) => setEditFormData(prev => ({ ...prev, departureStartTime: value }))}
+                                  placeholder="Start time"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Departure End Time</Label>
+                                <TimeInput
+                                  value={editFormData.departureEndTime}
+                                  onChange={(value) => setEditFormData(prev => ({ ...prev, departureEndTime: value }))}
+                                  placeholder="End time"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Available Seats</Label>
+                                <Select
+                                  value={editFormData.availableSeats.toString()}
+                                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, availableSeats: parseInt(value) }))}
+                                >
+                                  <SelectTrigger>
+                                    <Users className="mr-2 h-4 w-4" />
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                                      <SelectItem key={num} value={num.toString()}>
+                                        {num} seat{num > 1 ? "s" : ""}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Suggested Contribution ($)</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={editFormData.suggestedContribution || ''}
+                                  onChange={(e) => setEditFormData(prev => ({ ...prev, suggestedContribution: parseFloat(e.target.value) || 0 }))}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Additional Details (Optional)</Label>
+                              <Textarea
+                                value={editFormData.additionalDetails}
+                                onChange={(e) => setEditFormData(prev => ({ ...prev, additionalDetails: e.target.value }))}
+                                placeholder="Any additional information about the ride..."
+                                rows={3}
+                              />
+                            </div>
+
+                            <div className="flex gap-2 pt-4">
+                              <Button onClick={updateRide} disabled={isUpdating} className="flex-1">
+                                {isUpdating ? "Updating..." : "Update Ride"}
+                              </Button>
+                              <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="flex-1">
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Ride</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this ride? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteRide(ride._id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
@@ -175,13 +500,13 @@ export default function MyRidesPage() {
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
-                      {ride.availableSeats} seats available
+                                                  {ride.availableSeats} seat{ride.availableSeats === 1 ? '' : 's'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
-                      ${ride.suggestedContribution} suggested
+                      {ride.suggestedContribution > 0 ? `${ride.suggestedContribution} suggested` : "Free"}
                     </span>
                   </div>
                 </div>
@@ -190,9 +515,25 @@ export default function MyRidesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {ride.interestCount} people interested
-                      </span>
+                      <button
+                        onClick={() => setInterestedUsersModal({
+                          isOpen: true,
+                          rideId: ride._id,
+                          rideInfo: {
+                            startingFrom: ride.startingFrom,
+                            goingTo: ride.goingTo,
+                            travelDate: ride.travelDate
+                          }
+                        })}
+                        className={`text-sm ${
+                          ride.interestCount > 0 
+                            ? 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer' 
+                            : 'text-gray-600 cursor-default'
+                        }`}
+                        disabled={ride.interestCount === 0}
+                      >
+                        {ride.interestCount} {ride.interestCount === 1 ? 'person' : 'people'} interested
+                      </button>
                     </div>
                     <div className="text-xs text-gray-500">
                       Posted {formatDate(ride.createdAt)}
@@ -204,6 +545,15 @@ export default function MyRidesPage() {
           ))}
         </div>
       )}
-    </div>
+
+      {/* Interested Users Modal */}
+      <InterestedUsersModal
+        isOpen={interestedUsersModal.isOpen}
+        onClose={() => setInterestedUsersModal(prev => ({ ...prev, isOpen: false }))}
+        rideId={interestedUsersModal.rideId}
+        rideInfo={interestedUsersModal.rideInfo}
+      />
+      </div>
+    </ProtectedRoute>
   );
 } 

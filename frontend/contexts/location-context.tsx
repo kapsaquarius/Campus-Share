@@ -51,18 +51,67 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   const searchLocations = async (query: string): Promise<Location[]> => {
     try {
-      const response = await fetch(`http://localhost:5000/api/locations/search?q=${encodeURIComponent(query)}&limit=10`)
+      const response = await fetch(`http://localhost:5000/api/locations/search?q=${encodeURIComponent(query)}&limit=20`)
       
       if (!response.ok) {
         throw new Error('Failed to search locations')
       }
       
       const data = await response.json()
-      return data.locations || []
+      const locations = data.locations || []
+      
+      // Process and simplify suggestions - only city-level results
+      return processSimplifiedLocationSuggestions(locations, query)
     } catch (error) {
       console.error('Error searching locations:', error)
       return []
     }
+  }
+
+  const processSimplifiedLocationSuggestions = (locations: Location[], query: string): Location[] => {
+    // Group locations by city + state to create city-level suggestions only
+    const cityGroups = new Map<string, Location>()
+    
+    locations.forEach(location => {
+      const cityKey = `${location.city.toLowerCase()}-${location.stateName.toLowerCase()}`
+      if (!cityGroups.has(cityKey)) {
+        // Create a city-level location object
+        const cityLocation: Location = {
+          _id: `city-${cityKey}`,
+          zipCode: '', // No specific zip code
+          city: location.city,
+          state: location.state,
+          stateName: location.stateName,
+          displayName: `${location.city}, ${location.stateName}` // Clean city, state format
+        }
+        cityGroups.set(cityKey, cityLocation)
+      }
+    })
+    
+    const suggestions = Array.from(cityGroups.values())
+    const queryLower = query.toLowerCase().trim()
+    
+    // Rank suggestions: exact city matches first, then partial matches
+    const rankedSuggestions = suggestions.sort((a, b) => {
+      const aCityMatch = a.city.toLowerCase().startsWith(queryLower)
+      const bCityMatch = b.city.toLowerCase().startsWith(queryLower)
+      const aStateMatch = a.stateName.toLowerCase().includes(queryLower)
+      const bStateMatch = b.stateName.toLowerCase().includes(queryLower)
+      
+      // Exact city name matches first
+      if (aCityMatch && !bCityMatch) return -1
+      if (!aCityMatch && bCityMatch) return 1
+      
+      // Then state matches
+      if (aStateMatch && !bStateMatch) return -1
+      if (!aStateMatch && bStateMatch) return 1
+      
+      // Alphabetical order within same priority
+      return a.displayName.localeCompare(b.displayName)
+    })
+    
+    // Limit final results
+    return rankedSuggestions.slice(0, 8)
   }
 
   const addToRecent = (location: Location) => {

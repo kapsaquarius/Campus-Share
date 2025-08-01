@@ -12,10 +12,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useNotifications } from "@/contexts/notification-context"
 import { apiService } from "@/lib/api"
-import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare } from "lucide-react"
+import { TimeInput } from "@/components/ui/time-input"
+import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare, X } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
+
+// Format time from 24h to 12h with AM/PM
+const formatTimeRange = (startTime: string, endTime: string) => {
+  const formatTime = (time: string) => {
+    if (!time) return time;
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+  
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+};
 
 interface Ride {
   _id: string
@@ -45,8 +61,9 @@ interface Ride {
 
 export default function RidesPage() {
   const { user, token } = useAuth()
+  const { refreshNotifications } = useNotifications()
   const [searchForm, setSearchForm] = useState({
-    travelDate: new Date(),
+    travelDate: undefined as Date | undefined,
     startingFrom: "",
     goingTo: "",
     preferredTimeStart: "",
@@ -61,6 +78,12 @@ export default function RidesPage() {
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([])
   const [showStartingSuggestions, setShowStartingSuggestions] = useState(false)
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
+  
+  // Track valid selections
+  const [validSelections, setValidSelections] = useState({
+    startingFrom: false,
+    goingTo: false
+  })
 
   // Don't load rides on mount - show empty state until user searches
   useEffect(() => {
@@ -81,8 +104,8 @@ export default function RidesPage() {
           description: response.error,
           variant: "destructive",
         })
-      } else if (response.data) {
-        setRides(response.data.rides || [])
+      } else if (response.data && typeof response.data === 'object' && response.data !== null && 'rides' in response.data) {
+        setRides((response.data as any).rides || [])
       }
     } catch (error) {
       toast({
@@ -96,7 +119,8 @@ export default function RidesPage() {
   // Real location search - no mock data
 
   const handleLocationSearch = async (query: string, field: "startingFrom" | "goingTo") => {
-    if (query.length > 0) {
+    // Only search if query has at least 2 characters
+    if (query.length >= 2) {
       try {
         const locations = await searchLocations(query)
         
@@ -124,6 +148,36 @@ export default function RidesPage() {
 
   const handleLocationSelect = (location: any, field: "startingFrom" | "goingTo") => {
     setSearchForm((prev) => ({ ...prev, [field]: location.displayName }))
+    setValidSelections((prev) => ({ ...prev, [field]: true }))
+    setStartingSuggestions([])
+    setDestinationSuggestions([])
+    setShowStartingSuggestions(false)
+    setShowDestinationSuggestions(false)
+  }
+
+  const handleLocationInputChange = (value: string, field: "startingFrom" | "goingTo") => {
+    // If user is typing but hasn't selected from dropdown, mark as invalid
+    setValidSelections((prev) => ({ ...prev, [field]: false }))
+    
+    // If backspace pressed, clear the field and reset validation
+    if (value.length === 0) {
+      setSearchForm((prev) => ({ ...prev, [field]: "" }))
+      setValidSelections((prev) => ({ ...prev, [field]: false }))
+      setStartingSuggestions([])
+      setDestinationSuggestions([])
+      setShowStartingSuggestions(false)
+      setShowDestinationSuggestions(false)
+      return
+    }
+    
+    // Update form value and trigger search
+    setSearchForm((prev) => ({ ...prev, [field]: value }))
+    handleLocationSearch(value, field)
+  }
+
+  const clearInvalidLocation = (field: "startingFrom" | "goingTo") => {
+    setSearchForm((prev) => ({ ...prev, [field]: "" }))
+    setValidSelections((prev) => ({ ...prev, [field]: false }))
     setStartingSuggestions([])
     setDestinationSuggestions([])
     setShowStartingSuggestions(false)
@@ -131,6 +185,27 @@ export default function RidesPage() {
   }
 
   const handleSearch = async () => {
+    // Validate locations before search
+    if (searchForm.startingFrom && !validSelections.startingFrom) {
+      clearInvalidLocation("startingFrom")
+      toast({
+        title: "Invalid starting location",
+        description: "Location cleared. Please select a valid location from the dropdown suggestions.",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (searchForm.goingTo && !validSelections.goingTo) {
+      clearInvalidLocation("goingTo")
+      toast({
+        title: "Invalid destination",
+        description: "Location cleared. Please select a valid location from the dropdown suggestions.", 
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!token) {
       toast({
         title: "Authentication required",
@@ -151,9 +226,12 @@ export default function RidesPage() {
       errors.push("Destination is required")
     }
     
-    if (!searchForm.travelDate) {
-      errors.push("Travel date is required")
+    // Check if travel date is in the past
+    if (searchForm.travelDate && searchForm.travelDate < new Date()) {
+      errors.push("Travel date cannot be in the past")
     }
+    
+    // Travel date is optional for search
     
     if (errors.length > 0) {
       toast({
@@ -167,13 +245,23 @@ export default function RidesPage() {
     setIsSearching(true)
     try {
       // Build search parameters from form data
-      const searchParams = new URLSearchParams({
-        travelDate: format(searchForm.travelDate, 'yyyy-MM-dd'),
-        startingFrom: searchForm.startingFrom,
-        goingTo: searchForm.goingTo,
-        preferredTimeStart: searchForm.preferredTimeStart,
-        preferredTimeEnd: searchForm.preferredTimeEnd,
-      })
+      const searchParams = new URLSearchParams()
+      
+      if (searchForm.travelDate) {
+        searchParams.set('travelDate', format(searchForm.travelDate, 'yyyy-MM-dd'))
+      }
+      if (searchForm.startingFrom) {
+        searchParams.set('startingFrom', searchForm.startingFrom)
+      }
+      if (searchForm.goingTo) {
+        searchParams.set('goingTo', searchForm.goingTo)
+      }
+      if (searchForm.preferredTimeStart) {
+        searchParams.set('preferredTimeStart', searchForm.preferredTimeStart)
+      }
+      if (searchForm.preferredTimeEnd) {
+        searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
+      }
 
       const response = await fetch(`http://localhost:5000/api/rides/search?${searchParams.toString()}`, {
         headers: {
@@ -187,10 +275,16 @@ export default function RidesPage() {
       }
 
       const data = await response.json()
-      setRides(data.rides || [])
+      
+      // Filter out user's own rides from search results
+      const filteredRides = (data.rides || []).filter((ride: any) => {
+        return String(ride.userId) !== String(user?._id)
+      })
+      
+      setRides(filteredRides)
       toast({
         title: "Search completed",
-        description: `Found ${data.rides?.length || 0} rides for your criteria.`,
+        description: `Found ${filteredRides.length} rides for your criteria.`,
       })
     } catch (error) {
       toast({
@@ -214,8 +308,9 @@ export default function RidesPage() {
     }
 
     try {
-      const response = await apiService.expressInterest(token, rideId)
-      if (response.error) {
+            const response = await apiService.expressInterest(token, rideId)
+
+      if (response && response.error) {
         toast({
           title: "Failed to express interest",
           description: response.error,
@@ -224,8 +319,17 @@ export default function RidesPage() {
       } else {
         toast({
           title: "Interest expressed!",
-          description: "The driver has been notified of your interest.",
+          description: "The driver has been notified! Check 'My Interested Rides' in your profile.",
+          duration: 5000,
         })
+        
+        // Refresh notifications to show any new notifications
+        await refreshNotifications()
+        
+        // Refresh search results to remove the ride from the list
+        if (searchForm.travelDate && searchForm.startingFrom && searchForm.goingTo) {
+          await handleSearch()
+        }
       }
     } catch (error) {
       toast({
@@ -239,17 +343,9 @@ export default function RidesPage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Find Rides</h1>
-            <p className="text-gray-600 mt-2">Search for available rides or create your own</p>
-          </div>
-          <Button asChild>
-            <Link href="/rides/create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Ride
-            </Link>
-          </Button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Find Rides</h1>
+          <p className="text-gray-600 mt-2">Search for available rides</p>
         </div>
 
         {/* Search Form */}
@@ -265,22 +361,36 @@ export default function RidesPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Travel Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(searchForm.travelDate, "PPP")}
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {searchForm.travelDate ? format(searchForm.travelDate, "PPP") : "Select travel date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={searchForm.travelDate}
+                        onSelect={(date) => setSearchForm((prev) => ({ ...prev, travelDate: date }))}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {searchForm.travelDate && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setSearchForm((prev) => ({ ...prev, travelDate: undefined }))}
+                      className="shrink-0"
+                      title="Clear date"
+                    >
+                      <X className="h-4 w-4" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={searchForm.travelDate}
-                      onSelect={(date) => date && setSearchForm((prev) => ({ ...prev, travelDate: date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2 relative">
@@ -288,12 +398,10 @@ export default function RidesPage() {
                 <Input
                   placeholder="Enter starting location"
                   value={searchForm.startingFrom}
-                  onChange={(e) => {
-                    setSearchForm((prev) => ({ ...prev, startingFrom: e.target.value }))
-                    handleLocationSearch(e.target.value, "startingFrom")
-                  }}
+                  onChange={(e) => handleLocationInputChange(e.target.value, "startingFrom")}
+                  className={`${!validSelections.startingFrom && searchForm.startingFrom ? "border-amber-500 bg-amber-50" : ""}`}
                   onFocus={() => {
-                    if (searchForm.startingFrom.length > 0) {
+                    if (searchForm.startingFrom.length >= 2) {
                       handleLocationSearch(searchForm.startingFrom, "startingFrom")
                     }
                   }}
@@ -303,16 +411,27 @@ export default function RidesPage() {
                   }}
                 />
                 {showStartingSuggestions && startingSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
-                    {startingSuggestions.map((location) => (
+                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto mt-1">
+                    {startingSuggestions.map((location, index) => (
                       <div
                         key={location._id}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors ${
+                          index === 0 ? 'rounded-t-lg' : ''
+                        } ${
+                          index === startingSuggestions.length - 1 ? 'rounded-b-lg border-b-0' : 'border-b border-gray-100'
+                        }`}
                         onMouseDown={() => handleLocationSelect(location, "startingFrom")}
                       >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{location.displayName}</span>
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-900">
+                              {location.displayName}
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1">
+                              All areas in {location.city}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -325,12 +444,10 @@ export default function RidesPage() {
                 <Input
                   placeholder="Enter destination"
                   value={searchForm.goingTo}
-                  onChange={(e) => {
-                    setSearchForm((prev) => ({ ...prev, goingTo: e.target.value }))
-                    handleLocationSearch(e.target.value, "goingTo")
-                  }}
+                  onChange={(e) => handleLocationInputChange(e.target.value, "goingTo")}
+                  className={`${!validSelections.goingTo && searchForm.goingTo ? "border-amber-500 bg-amber-50" : ""}`}
                   onFocus={() => {
-                    if (searchForm.goingTo.length > 0) {
+                    if (searchForm.goingTo.length >= 2) {
                       handleLocationSearch(searchForm.goingTo, "goingTo")
                     }
                   }}
@@ -340,16 +457,27 @@ export default function RidesPage() {
                   }}
                 />
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
-                    {destinationSuggestions.map((location) => (
+                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto mt-1">
+                    {destinationSuggestions.map((location, index) => (
                       <div
                         key={location._id}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors ${
+                          index === 0 ? 'rounded-t-lg' : ''
+                        } ${
+                          index === destinationSuggestions.length - 1 ? 'rounded-b-lg border-b-0' : 'border-b border-gray-100'
+                        }`}
                         onMouseDown={() => handleLocationSelect(location, "goingTo")}
                       >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{location.displayName}</span>
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-900">
+                              {location.displayName}
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1">
+                              All areas in {location.city}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -358,17 +486,17 @@ export default function RidesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Preferred Time</Label>
+                <Label>Preferred Start Times of Travel</Label>
                 <div className="flex gap-2">
-                  <Input
-                    type="time"
+                  <TimeInput
                     value={searchForm.preferredTimeStart}
-                    onChange={(e) => setSearchForm((prev) => ({ ...prev, preferredTimeStart: e.target.value }))}
+                    onChange={(value) => setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))}
+                    placeholder="Start time"
                   />
-                  <Input
-                    type="time"
+                  <TimeInput
                     value={searchForm.preferredTimeEnd}
-                    onChange={(e) => setSearchForm((prev) => ({ ...prev, preferredTimeEnd: e.target.value }))}
+                    onChange={(value) => setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))}
+                    placeholder="End time"
                   />
                 </div>
               </div>
@@ -413,15 +541,18 @@ export default function RidesPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {ride.departureStartTime} - {ride.departureEndTime}
+                          {formatTimeRange(ride.departureStartTime, ride.departureEndTime)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4" />
-                          {ride.seatsRemaining} of {ride.availableSeats} seats available
+                          {ride.availableSeats} seat{ride.availableSeats === 1 ? '' : 's'}
                         </div>
                         <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />${ride.suggestedContribution.amount}{" "}
-                          {ride.suggestedContribution.currency}
+                          <DollarSign className="w-4 h-4" />
+                          {ride.suggestedContribution.amount > 0 
+                            ? `${ride.suggestedContribution.amount} ${ride.suggestedContribution.currency}`
+                            : "Free"
+                          }
                         </div>
                       </div>
 
@@ -431,16 +562,6 @@ export default function RidesPage() {
                             <span className="font-medium">Driver: {ride.driver.name}</span>
                             <div className="flex items-center gap-4 mt-1">
                               <span className="text-sm text-gray-500">{ride.interestCount} interested</span>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone className="w-4 h-4 text-blue-600" />
-                                <span className="text-blue-600">{ride.driver.phoneNumber}</span>
-                              </div>
-                              {ride.driver.whatsappNumber && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <MessageSquare className="w-4 h-4 text-green-600" />
-                                  <span className="text-green-600">{ride.driver.whatsappNumber}</span>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -466,10 +587,7 @@ export default function RidesPage() {
             <CardContent>
               <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No rides found</h3>
-              <p className="text-gray-600 mb-4">Try adjusting your search criteria or create a new ride posting.</p>
-              <Button asChild>
-                <Link href="/rides/create">Create a Ride</Link>
-              </Button>
+              <p className="text-gray-600 mb-4">Try adjusting your search criteria to find available rides.</p>
             </CardContent>
           </Card>
         )}

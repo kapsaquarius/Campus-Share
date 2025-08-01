@@ -1,6 +1,7 @@
 from scripts.database import get_collection
 from bson import ObjectId
 from typing import List, Dict, Optional
+import re
 
 class LocationService:
     def __init__(self):
@@ -62,6 +63,65 @@ class LocationService:
     def _format_locations(self, locations: List[Dict]) -> List[Dict]:
         """Format multiple locations for API response"""
         return [self._format_location(location) for location in locations]
+
+    def get_all_city_locations(self, city: str, state: str) -> List[Dict]:
+        """Get all zip codes for a given city and state"""
+        query = {
+            'city': {'$regex': f'^{re.escape(city)}$', '$options': 'i'},
+            'state': {'$regex': f'^{re.escape(state)}$', '$options': 'i'}
+        }
+        
+        locations = list(self.locations.find(query).sort('zipCode', 1))
+        return self._format_locations(locations)
+    
+    def get_all_city_display_names(self, city: str, state_name: str) -> List[str]:
+        """Get all possible display name variations for a city"""
+        query = {
+            'city': {'$regex': f'^{re.escape(city)}$', '$options': 'i'},
+            'stateName': {'$regex': f'^{re.escape(state_name)}$', '$options': 'i'}
+        }
+        
+        locations = list(self.locations.find(query).sort('zipCode', 1))
+        display_names = []
+        
+        for location in locations:
+            # Add both general city format and specific zip code format
+            general_name = f"{location['city']}, {location['stateName']}"
+            specific_name = f"{location['city']}, {location['stateName']} {location['zipCode']}"
+            
+            if general_name not in display_names:
+                display_names.append(general_name)
+            display_names.append(specific_name)
+        
+        return display_names
+    
+    def parse_location_string(self, location_string: str) -> Dict:
+        """Parse a location string to extract city, state, and zip code"""
+        import re
+        
+        # Handle format: "City, State" or "City, State ZipCode"
+        pattern = r'^(.+?),\s*(.+?)(?:\s+(\d{5}))?$'
+        match = re.match(pattern, location_string.strip())
+        
+        if match:
+            city = match.group(1).strip()
+            state_part = match.group(2).strip()
+            zip_code = match.group(3)
+            
+            # If state_part contains zip code, extract it
+            if not zip_code and ' ' in state_part:
+                parts = state_part.rsplit(' ', 1)
+                if len(parts) == 2 and parts[1].isdigit() and len(parts[1]) == 5:
+                    state_part = parts[0]
+                    zip_code = parts[1]
+            
+            return {
+                'city': city,
+                'state': state_part,
+                'zipCode': zip_code
+            }
+        
+        return None
 
 # Global instance
 location_service = LocationService() 

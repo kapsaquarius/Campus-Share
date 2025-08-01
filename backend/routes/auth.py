@@ -12,12 +12,20 @@ def register():
     try:
         data = request.get_json()
         
+        # Validate required fields
+        required_fields = ['username', 'email', 'password', 'name', 'phone', 'whatsapp']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+        
         # Create user
         user = user_service.create_user(
             username=data['username'],
             email=data['email'],
             password=data['password'],
-            name=data['name']
+            name=data['name'],
+            phone=data['phone'],
+            whatsapp=data['whatsapp']
         )
         
         # Create JWT token

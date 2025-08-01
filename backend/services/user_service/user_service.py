@@ -8,8 +8,36 @@ class UserService:
     def __init__(self):
         self.users = get_collection('users')
     
-    def create_user(self, username: str, email: str, password: str, name: str) -> Dict:
-        """Create a new user with username/password"""
+    def create_user(self, username: str, email: str, password: str, name: str, phone: str, whatsapp: str) -> Dict:
+        """Create a new user with username/password and required contact info"""
+        # Validate required fields
+        if not phone or not phone.strip():
+            raise ValueError("Phone number is required")
+        
+        if not whatsapp or not whatsapp.strip():
+            raise ValueError("WhatsApp number is required")
+        
+        # Enhanced phone number validation for international format
+        import re
+        # Must start with + followed by country code and number
+        phone_pattern = r'^\+[\d\s\-\(\)]{7,}$'
+        
+        if not re.match(phone_pattern, phone.strip()):
+            raise ValueError("Please enter a valid phone number with country code (e.g., +1 234 567 8900)")
+        
+        if not re.match(phone_pattern, whatsapp.strip()):
+            raise ValueError("Please enter a valid WhatsApp number with country code (e.g., +1 234 567 8900)")
+        
+        # Check minimum digits count
+        phone_digits = re.sub(r'[^\d]', '', phone)
+        whatsapp_digits = re.sub(r'[^\d]', '', whatsapp)
+        
+        if len(phone_digits) < 7:
+            raise ValueError("Phone number is too short")
+            
+        if len(whatsapp_digits) < 7:
+            raise ValueError("WhatsApp number is too short")
+        
         # Check if username already exists
         if self.users.find_one({"username": username}):
             raise ValueError("Username already exists")
@@ -26,8 +54,8 @@ class UserService:
             "email": email,
             "name": name,
             "password": hashed_password.decode('utf-8'),
-            "phone": "",
-            "whatsapp": "",
+            "phone": phone.strip(),
+            "whatsapp": whatsapp.strip(),
             "createdAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow()
         }

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Eye, EyeOff, Loader2, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { CountryPhoneInput } from "@/components/ui/country-phone-input"
 
 interface FormData {
   username: string
@@ -21,6 +22,8 @@ interface FormData {
   password: string
   confirmPassword: string
   name: string
+  phone: string
+  whatsapp: string
   agreeToTerms: boolean
 }
 
@@ -31,6 +34,8 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     name: "",
+    phone: "",
+    whatsapp: "",
     agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -58,7 +63,7 @@ export default function RegisterPage() {
     return "Strong"
   }
 
-  const validateField = (field: string, value: any) => {
+  const validateField = (field: string, value: any, currentFormData = formData) => {
     switch (field) {
       case "username":
         if (!value) return "Username is required"
@@ -80,7 +85,7 @@ export default function RegisterPage() {
 
       case "confirmPassword":
         if (!value) return "Please confirm your password"
-        if (value !== formData.password) return "Passwords do not match"
+        if (value !== currentFormData.password) return "Passwords do not match"
         return ""
 
       case "name":
@@ -88,6 +93,26 @@ export default function RegisterPage() {
         if (value.length < 2) return "Name must be at least 2 characters"
         if (value.length > 100) return "Name must be less than 100 characters"
         if (!/^[a-zA-Z\s]+$/.test(value)) return "Name can only contain letters and spaces"
+        return ""
+
+      case "phone":
+        if (!value) return "Phone number is required"
+        if (!value.startsWith('+')) return "Phone number must include country code"
+        const phonePattern = /^\+[\d\s\-\(\)]{4,}$/
+        if (!phonePattern.test(value.trim())) return "Please enter a valid phone number with country code"
+        // Check if it has enough digits after country code
+        const digitsOnly = value.replace(/[^\d]/g, '')
+        if (digitsOnly.length < 7) return "Phone number is too short"
+        return ""
+
+      case "whatsapp":
+        if (!value) return "WhatsApp number is required"
+        if (!value.startsWith('+')) return "WhatsApp number must include country code"
+        const whatsappPattern = /^\+[\d\s\-\(\)]{4,}$/
+        if (!whatsappPattern.test(value.trim())) return "Please enter a valid WhatsApp number with country code"
+        // Check if it has enough digits after country code
+        const whatsappDigitsOnly = value.replace(/[^\d]/g, '')
+        if (whatsappDigitsOnly.length < 7) return "WhatsApp number is too short"
         return ""
 
       case "agreeToTerms":
@@ -123,12 +148,14 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         name: formData.name,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp,
       })
       toast({
         title: "Account created successfully!",
         description: "Welcome to CampusShare!",
       })
-      router.push("/")
+      router.push("/rides")
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -141,17 +168,34 @@ export default function RegisterPage() {
   }
 
   const handleInputChange = (field: keyof FormData, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    const newFormData = { ...formData, [field]: value }
+    setFormData(newFormData)
 
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
-    }
-
-    // Real-time validation
-    const error = validateField(field, value)
+    // Real-time validation for the current field
+    const error = validateField(field, value, newFormData)
     if (error) {
       setErrors((prev) => ({ ...prev, [field]: error }))
+    } else {
+      // Remove error for this field completely
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+
+    // Special case: if password changes, re-validate confirm password
+    if (field === 'password' && newFormData.confirmPassword) {
+      const confirmPasswordError = validateField('confirmPassword', newFormData.confirmPassword, newFormData)
+      if (confirmPasswordError) {
+        setErrors((prev) => ({ ...prev, confirmPassword: confirmPasswordError }))
+      } else {
+        setErrors((prev) => {
+          const newErrors = { ...prev }
+          delete newErrors.confirmPassword
+          return newErrors
+        })
+      }
     }
   }
 
@@ -227,6 +271,28 @@ export default function RegisterPage() {
               </div>
               {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
             </div>
+
+            <CountryPhoneInput
+              id="phone"
+              label="Phone Number"
+              value={formData.phone}
+              onChange={(value) => handleInputChange("phone", value)}
+              placeholder="Enter phone number"
+              error={errors.phone}
+              required={true}
+              helpText="This will be shared with interested riders to contact you directly"
+            />
+
+            <CountryPhoneInput
+              id="whatsapp"
+              label="WhatsApp Number"
+              value={formData.whatsapp}
+              onChange={(value) => handleInputChange("whatsapp", value)}
+              placeholder="Enter WhatsApp number"
+              error={errors.whatsapp}
+              required={true}
+              helpText="This will be shared with interested riders for WhatsApp communication"
+            />
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

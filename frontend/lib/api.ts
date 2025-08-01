@@ -57,6 +57,8 @@ class ApiService {
     email: string
     password: string
     name: string
+    phone: string
+    whatsapp: string
   }) {
     return this.request('/auth/register', {
       method: 'POST',
@@ -80,6 +82,7 @@ class ApiService {
     return this.request('/auth/profile', {
       method: 'PUT',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(profileData),
@@ -88,7 +91,7 @@ class ApiService {
 
   // Rides endpoints
   async getRides(token: string) {
-    return this.request('/rides', {
+    return this.request('/rides/', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -96,9 +99,10 @@ class ApiService {
   }
 
   async createRide(token: string, rideData: any) {
-    return this.request('/rides', {
+    return this.request('/rides/', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(rideData),
@@ -117,6 +121,7 @@ class ApiService {
     return this.request(`/rides/${rideId}`, {
       method: 'PUT',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(rideData),
@@ -136,10 +141,68 @@ class ApiService {
     return this.request(`/rides/${rideId}/interest`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
     })
   }
+
+  async getInterestedUsers(token: string, rideId: string) {
+    return this.request(`/rides/${rideId}/interested-users`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getMyInterestedRides(token: string) {
+    return this.request('/rides/my-interested', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // Notification endpoints
+  async getNotifications(token: string) {
+    return this.request('/notifications/', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getUnreadNotificationCount(token: string) {
+    return this.request('/notifications/unread-count', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async markNotificationAsRead(token: string, notificationId: string) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async markAllNotificationsAsRead(token: string) {
+    return this.request('/notifications/mark-all-read', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  // deleteNotification removed - notifications are hidden when read
 
   // Roommates endpoints
   async getRoommateRequests(token: string) {
@@ -154,6 +217,7 @@ class ApiService {
     return this.request('/roommates', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(requestData),
@@ -172,6 +236,7 @@ class ApiService {
     return this.request(`/roommates/${requestId}`, {
       method: 'PUT',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(requestData),
@@ -200,6 +265,7 @@ class ApiService {
     return this.request('/subleases', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(subleaseData),
@@ -218,6 +284,7 @@ class ApiService {
     return this.request(`/subleases/${subleaseId}`, {
       method: 'PUT',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(subleaseData),
@@ -227,24 +294,6 @@ class ApiService {
   async deleteSublease(token: string, subleaseId: string) {
     return this.request(`/subleases/${subleaseId}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  }
-
-  // Notifications endpoints
-  async getNotifications(token: string) {
-    return this.request('/notifications', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  }
-
-  async markNotificationAsRead(token: string, notificationId: string) {
-    return this.request(`/notifications/${notificationId}/read`, {
-      method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
       },

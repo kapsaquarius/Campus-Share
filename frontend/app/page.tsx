@@ -1,9 +1,29 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Car, Home, Users, Star, MapPin, Clock } from "lucide-react"
 
 export default function HomePage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  // Redirect authenticated users to rides page
+  useEffect(() => {
+    if (user) {
+      router.push("/rides")
+    }
+  }, [user, router])
+
+  // Don't render content if user is authenticated (will redirect)
+  if (user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Hero Section */}
@@ -16,14 +36,7 @@ export default function HomePage() {
             Your all-in-one platform for ride-sharing, roommate finding, and sublease management. Connect with fellow
             students and make campus life easier.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="text-lg px-8 py-3">
-              <Link href="/auth/register">Get Started</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent">
-              <Link href="/auth/login">Sign In</Link>
-            </Button>
-          </div>
+
         </div>
       </section>
 
