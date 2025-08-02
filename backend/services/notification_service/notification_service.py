@@ -36,6 +36,19 @@ def create_ride_interest_notification(ride_id, interested_user_id, ride_details)
         related_id=ride_id
     )
 
+def create_ride_interest_removed_notification(ride_id, removed_user_id, ride_details):
+    """Create notification when someone removes their interest from a ride"""
+    users = get_collection('users')
+    removed_user = users.find_one({'_id': ObjectId(removed_user_id)})
+    
+    return create_notification(
+        user_id=ride_details['userId'],
+        type='ride_interest_removed',
+        title='Interest Removed',
+        message=f"{removed_user['name']} is no longer interested in your ride from {ride_details['startingFrom']} to {ride_details['goingTo']}",
+        related_id=ride_id
+    )
+
 def create_ride_update_notification(ride_id, ride_details):
     """Create notification for ride updates"""
     ride_interests = get_collection('ride_interests')

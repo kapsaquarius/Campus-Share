@@ -6,7 +6,7 @@ import { apiService } from "@/lib/api"
 
 interface Notification {
   _id: string
-  type: "ride_interest" | "ride_update" | "ride_cancellation" | "sublease_interest"
+  type: "ride_interest" | "ride_interest_removed" | "ride_update" | "ride_cancellation"
   title: string
   message: string
   read: boolean

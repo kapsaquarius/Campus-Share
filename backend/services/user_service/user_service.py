@@ -109,8 +109,8 @@ class UserService:
             "name": user["name"],
             "phoneNumber": user.get("phone", ""),
             "whatsappNumber": user.get("whatsapp", ""),
-            "createdAt": user["createdAt"].isoformat(),
-            "updatedAt": user["updatedAt"].isoformat()
+            "createdAt": user["createdAt"].isoformat() + 'Z',
+            "updatedAt": user["updatedAt"].isoformat() + 'Z'
         }
 
 # Global instance

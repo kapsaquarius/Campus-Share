@@ -27,7 +27,6 @@ export function Header() {
 
   const navigation = [
     { name: "Find Rides", href: "/rides", icon: Car },
-    { name: "Find Subleases", href: "/subleases", icon: Home },
     { name: "Find Roommates", href: "/roommates", icon: Users },
   ]
 

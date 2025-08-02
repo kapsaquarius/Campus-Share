@@ -17,6 +17,7 @@ export default function NotificationsPage() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "ride_interest":
+      case "ride_interest_removed":
       case "ride_update":
       case "ride_cancellation":
         return <Car className="w-5 h-5 text-blue-600" />

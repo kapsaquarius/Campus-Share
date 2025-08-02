@@ -12,8 +12,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CampusShare - Student Platform for Rides, Roommates & Subleases",
-  description: "Connect with fellow students for ride-sharing, roommate finding, and sublease management.",
+  title: "CampusShare - Student Platform for Rides & Roommates",
+  description: "Connect with fellow students for ride-sharing and roommate finding.",
     generator: 'v0.dev'
 }
 

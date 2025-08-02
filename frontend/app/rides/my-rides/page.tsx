@@ -67,13 +67,22 @@ export default function MyRidesPage() {
     rideId: '',
     rideInfo: { startingFrom: '', goingTo: '', travelDate: '' }
   });
-  const { searchLocations, locationSuggestions } = useLocation();
+  const { searchLocations } = useLocation();
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [showStartSuggestions, setShowStartSuggestions] = useState(false);
   const [showEndSuggestions, setShowEndSuggestions] = useState(false);
   const [validSelections, setValidSelections] = useState({
     startingFrom: true,
     goingTo: true
   });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
+  // Helper function to get today's date at midnight (start of day)
+  const getTodayStart = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
 
   useEffect(() => {
     if (token) {
@@ -113,12 +122,61 @@ export default function MyRidesPage() {
     }
   };
 
+  // Validation function for edit form (same as create form)
+  const validateEditForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!editFormData.startingFrom) {
+      newErrors.startingFrom = "Starting location is required"
+    }
+
+    if (!editFormData.goingTo) {
+      newErrors.goingTo = "Destination is required"
+    }
+
+    if (editFormData.startingFrom === editFormData.goingTo) {
+      newErrors.goingTo = "Destination must be different from starting location"
+    }
+
+    // Check if travel date is in the past
+    if (editFormData.travelDate < getTodayStart()) {
+      newErrors.travelDate = "Travel date cannot be in the past"
+    }
+
+    if (!editFormData.departureStartTime) {
+      newErrors.departureStartTime = "Preferred earliest start time is required"
+    }
+
+    if (!editFormData.departureEndTime) {
+      newErrors.departureEndTime = "Preferred latest start time is required"
+    }
+
+    if (
+      editFormData.departureStartTime &&
+      editFormData.departureEndTime &&
+      editFormData.departureStartTime > editFormData.departureEndTime
+    ) {
+      newErrors.departureEndTime = "Latest start time cannot be earlier than earliest start time"
+    }
+
+    if (editFormData.availableSeats < 1 || editFormData.availableSeats > 8) {
+      newErrors.availableSeats = "Available seats must be between 1 and 8"
+    }
+
+    if (editFormData.suggestedContribution < 0 || editFormData.suggestedContribution > 1000) {
+      newErrors.suggestedContribution = "Contribution must be between $0 and $1000"
+    }
+
+    setEditErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleEditRide = (ride: Ride) => {
     setEditingRide(ride);
     setEditFormData({
       startingFrom: ride.startingFrom,
       goingTo: ride.goingTo,
-      travelDate: new Date(ride.travelDate),
+      travelDate: new Date(ride.travelDate + 'T12:00:00'),
       departureStartTime: ride.departureStartTime,
       departureEndTime: ride.departureEndTime,
       availableSeats: ride.availableSeats,
@@ -126,6 +184,7 @@ export default function MyRidesPage() {
       additionalDetails: ''
     });
     setValidSelections({ startingFrom: true, goingTo: true });
+    setEditErrors({});
     setEditDialogOpen(true);
   };
 
@@ -140,11 +199,19 @@ export default function MyRidesPage() {
     setEditFormData(prev => ({ ...prev, [field]: value }));
     setValidSelections(prev => ({ ...prev, [field]: false }));
     
+    // Clear field-specific error when user starts typing
+    if (editErrors[field]) {
+      setEditErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
     if (value.length >= 2) {
-      searchLocations(value);
-      if (field === 'startingFrom') setShowStartSuggestions(true);
-      if (field === 'goingTo') setShowEndSuggestions(true);
+      searchLocations(value).then(suggestions => {
+        setLocationSuggestions(suggestions);
+        if (field === 'startingFrom') setShowStartSuggestions(true);
+        if (field === 'goingTo') setShowEndSuggestions(true);
+      });
     } else {
+      setLocationSuggestions([]);
       if (field === 'startingFrom') setShowStartSuggestions(false);
       if (field === 'goingTo') setShowEndSuggestions(false);
     }
@@ -153,14 +220,12 @@ export default function MyRidesPage() {
   const updateRide = async () => {
     if (!editingRide || !token) return;
 
-    // Validate required fields
-    if (!editFormData.startingFrom || !editFormData.goingTo || !validSelections.startingFrom || !validSelections.goingTo) {
-      toast.error('Please select valid locations from the dropdown suggestions');
-      return;
-    }
+    // Validate form using comprehensive validation
+    if (!validateEditForm()) return;
 
-    if (!editFormData.departureStartTime || !editFormData.departureEndTime) {
-      toast.error('Please provide departure times');
+    // Additional check for valid location selections
+    if (!validSelections.startingFrom || !validSelections.goingTo) {
+      toast.error('Please select valid locations from the dropdown suggestions');
       return;
     }
 
@@ -205,12 +270,22 @@ export default function MyRidesPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      // If the string already contains time info, use it as is
+      // Otherwise, add T12:00:00 to avoid timezone issues
+      const dateToFormat = dateString.includes('T') 
+        ? new Date(dateString)
+        : new Date(dateString + 'T12:00:00');
+      
+      return dateToFormat.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const formatTime = (timeString: string) => {
@@ -292,18 +367,21 @@ export default function MyRidesPage() {
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
+                                                              <div className="space-y-2">
                                 <Label>Starting From</Label>
                                 <div className="relative">
                                   <Input
                                     value={editFormData.startingFrom}
                                     onChange={(e) => handleLocationInputChange(e.target.value, 'startingFrom')}
                                     placeholder="Enter starting location"
-                                    className={!validSelections.startingFrom && editFormData.startingFrom ? 'border-amber-500 bg-amber-50' : ''}
+                                    className={`${!validSelections.startingFrom && editFormData.startingFrom ? 'border-amber-500 bg-amber-50' : ''} ${editErrors.startingFrom ? 'border-red-500' : ''}`}
                                   />
+                                  {editErrors.startingFrom && (
+                                    <p className="text-sm text-red-500 mt-1">{editErrors.startingFrom}</p>
+                                  )}
                                   {showStartSuggestions && locationSuggestions.length > 0 && (
                                     <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                      {locationSuggestions.map((location, index) => (
+                                      {locationSuggestions.map((location: any, index: number) => (
                                         <div
                                           key={index}
                                           className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -329,11 +407,14 @@ export default function MyRidesPage() {
                                     value={editFormData.goingTo}
                                     onChange={(e) => handleLocationInputChange(e.target.value, 'goingTo')}
                                     placeholder="Enter destination"
-                                    className={!validSelections.goingTo && editFormData.goingTo ? 'border-amber-500 bg-amber-50' : ''}
+                                    className={`${!validSelections.goingTo && editFormData.goingTo ? 'border-amber-500 bg-amber-50' : ''} ${editErrors.goingTo ? 'border-red-500' : ''}`}
                                   />
+                                  {editErrors.goingTo && (
+                                    <p className="text-sm text-red-500 mt-1">{editErrors.goingTo}</p>
+                                  )}
                                   {showEndSuggestions && locationSuggestions.length > 0 && (
                                     <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                      {locationSuggestions.map((location, index) => (
+                                      {locationSuggestions.map((location: any, index: number) => (
                                         <div
                                           key={index}
                                           className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -359,7 +440,7 @@ export default function MyRidesPage() {
                                 <PopoverTrigger asChild>
                                   <Button
                                     variant="outline"
-                                    className="w-full justify-start text-left font-normal"
+                                    className={`w-full justify-start text-left font-normal ${editErrors.travelDate ? 'border-red-500' : ''}`}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {editFormData.travelDate ? format(editFormData.travelDate, 'PPP') : 'Select date'}
@@ -369,30 +450,59 @@ export default function MyRidesPage() {
                                   <CalendarComponent
                                     mode="single"
                                     selected={editFormData.travelDate}
-                                    onSelect={(date) => date && setEditFormData(prev => ({ ...prev, travelDate: date }))}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        setEditFormData(prev => ({ ...prev, travelDate: date }));
+                                        if (editErrors.travelDate) {
+                                          setEditErrors(prev => ({ ...prev, travelDate: '' }));
+                                        }
+                                      }
+                                    }}
+                                    disabled={(date) => date < getTodayStart()}
                                     initialFocus
                                   />
                                 </PopoverContent>
                               </Popover>
+                              {editErrors.travelDate && (
+                                <p className="text-sm text-red-500 mt-1">{editErrors.travelDate}</p>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label>Departure Start Time</Label>
+                                <Label>Preferred Earliest Start Time</Label>
                                 <TimeInput
                                   value={editFormData.departureStartTime}
-                                  onChange={(value) => setEditFormData(prev => ({ ...prev, departureStartTime: value }))}
+                                  onChange={(value) => {
+                                    setEditFormData(prev => ({ ...prev, departureStartTime: value }));
+                                    if (editErrors.departureStartTime) {
+                                      setEditErrors(prev => ({ ...prev, departureStartTime: '' }));
+                                    }
+                                  }}
                                   placeholder="Start time"
+                                  className={editErrors.departureStartTime ? 'border-red-500' : ''}
                                 />
+                                {editErrors.departureStartTime && (
+                                  <p className="text-sm text-red-500 mt-1">{editErrors.departureStartTime}</p>
+                                )}
                               </div>
 
                               <div className="space-y-2">
-                                <Label>Departure End Time</Label>
+                                <Label>Preferred Latest Start Time</Label>
                                 <TimeInput
                                   value={editFormData.departureEndTime}
-                                  onChange={(value) => setEditFormData(prev => ({ ...prev, departureEndTime: value }))}
+                                  onChange={(value) => {
+                                    setEditFormData(prev => ({ ...prev, departureEndTime: value }));
+                                    if (editErrors.departureEndTime) {
+                                      setEditErrors(prev => ({ ...prev, departureEndTime: '' }));
+                                    }
+                                  }}
                                   placeholder="End time"
+                                  className={editErrors.departureEndTime ? 'border-red-500' : ''}
                                 />
+                                {editErrors.departureEndTime && (
+                                  <p className="text-sm text-red-500 mt-1">{editErrors.departureEndTime}</p>
+                                )}
                               </div>
                             </div>
 
@@ -401,9 +511,14 @@ export default function MyRidesPage() {
                                 <Label>Available Seats</Label>
                                 <Select
                                   value={editFormData.availableSeats.toString()}
-                                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, availableSeats: parseInt(value) }))}
+                                  onValueChange={(value) => {
+                                    setEditFormData(prev => ({ ...prev, availableSeats: parseInt(value) }));
+                                    if (editErrors.availableSeats) {
+                                      setEditErrors(prev => ({ ...prev, availableSeats: '' }));
+                                    }
+                                  }}
                                 >
-                                  <SelectTrigger>
+                                  <SelectTrigger className={editErrors.availableSeats ? 'border-red-500' : ''}>
                                     <Users className="mr-2 h-4 w-4" />
                                     <SelectValue />
                                   </SelectTrigger>
@@ -415,6 +530,9 @@ export default function MyRidesPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                {editErrors.availableSeats && (
+                                  <p className="text-sm text-red-500 mt-1">{editErrors.availableSeats}</p>
+                                )}
                               </div>
 
                               <div className="space-y-2">
@@ -424,8 +542,17 @@ export default function MyRidesPage() {
                                   min="0"
                                   step="0.01"
                                   value={editFormData.suggestedContribution || ''}
-                                  onChange={(e) => setEditFormData(prev => ({ ...prev, suggestedContribution: parseFloat(e.target.value) || 0 }))}
+                                  onChange={(e) => {
+                                    setEditFormData(prev => ({ ...prev, suggestedContribution: parseFloat(e.target.value) || 0 }));
+                                    if (editErrors.suggestedContribution) {
+                                      setEditErrors(prev => ({ ...prev, suggestedContribution: '' }));
+                                    }
+                                  }}
+                                  className={editErrors.suggestedContribution ? 'border-red-500' : ''}
                                 />
+                                {editErrors.suggestedContribution && (
+                                  <p className="text-sm text-red-500 mt-1">{editErrors.suggestedContribution}</p>
+                                )}
                               </div>
                             </div>
 
@@ -494,7 +621,7 @@ export default function MyRidesPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
-                      {formatTime(ride.departureStartTime)} - {formatTime(ride.departureEndTime)}
+                      Starting between {formatTime(ride.departureStartTime)} - {formatTime(ride.departureEndTime)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

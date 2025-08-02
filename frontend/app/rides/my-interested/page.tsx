@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { apiService } from "@/lib/api"
 import { 
@@ -17,6 +18,7 @@ import {
   Phone, 
   MessageSquare,
   Heart,
+  HeartOff,
   ArrowRight,
   Loader2
 } from "lucide-react"
@@ -51,6 +53,7 @@ export default function MyInterestedRidesPage() {
   const [interestedRides, setInterestedRides] = useState<InterestedRide[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [removingInterest, setRemovingInterest] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && token) {
@@ -82,13 +85,59 @@ export default function MyInterestedRidesPage() {
     }
   }
 
+  const handleRemoveInterest = async (rideId: string) => {
+    if (!token) return;
+
+    try {
+      setRemovingInterest(rideId);
+      
+      const response = await apiService.removeInterest(token, rideId);
+      
+      if (response.error) {
+        toast({
+          title: "Failed to remove interest",
+          description: response.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Remove the ride from the local state
+      setInterestedRides(prev => prev.filter(item => item.ride._id !== rideId));
+      
+      toast({
+        title: "Interest removed",
+        description: "You are no longer interested in this ride",
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove interest",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingInterest(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    try {
+      // If the string already contains time info, use it as is
+      // Otherwise, add T12:00:00 to avoid timezone issues
+      const dateToFormat = dateString.includes('T') 
+        ? new Date(dateString)
+        : new Date(dateString + 'T12:00:00');
+      
+      return dateToFormat.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   }
 
   const formatTime = (timeString: string) => {
@@ -197,7 +246,7 @@ export default function MyInterestedRidesPage() {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
                       <span>
-                        {formatTime(item.ride.departureStartTime)} - {formatTime(item.ride.departureEndTime)}
+                        Starting between {formatTime(item.ride.departureStartTime)} - {formatTime(item.ride.departureEndTime)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -249,6 +298,51 @@ export default function MyInterestedRidesPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="pt-4 border-t">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          disabled={removingInterest === item.ride._id}
+                        >
+                          {removingInterest === item.ride._id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Removing...
+                            </>
+                          ) : (
+                            <>
+                              <HeartOff className="h-4 w-4 mr-2" />
+                              Not Interested
+                            </>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Interest</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to remove your interest in this ride from{" "}
+                            <strong>{item.ride.startingFrom}</strong> to{" "}
+                            <strong>{item.ride.goingTo}</strong>? You can express interest again later if you change your mind.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleRemoveInterest(item.ride._id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Yes, Remove Interest
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>

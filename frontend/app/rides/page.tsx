@@ -62,6 +62,13 @@ interface Ride {
 export default function RidesPage() {
   const { user, token } = useAuth()
   const { refreshNotifications } = useNotifications()
+  
+  // Helper function to get today's date at midnight (start of day)
+  const getTodayStart = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
   const [searchForm, setSearchForm] = useState({
     travelDate: undefined as Date | undefined,
     startingFrom: "",
@@ -84,6 +91,62 @@ export default function RidesPage() {
     startingFrom: false,
     goingTo: false
   })
+  
+  // Track form validation
+  const [formErrors, setFormErrors] = useState<string[]>([])
+  const [timeErrors, setTimeErrors] = useState<Record<string, string>>({})
+  
+  // Helper function to convert time to minutes for comparison
+  const timeToMinutes = (timeStr: string) => {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Validate time fields
+  const validateTimes = (startTime: string, endTime: string) => {
+    const errors: Record<string, string> = {}
+    
+    if (startTime && endTime) {
+      const startMinutes = timeToMinutes(startTime);
+      const endMinutes = timeToMinutes(endTime);
+      
+      if (startMinutes > endMinutes) {
+        errors.preferredTimeEnd = "End time cannot be earlier than start time"
+      }
+    }
+    
+    setTimeErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+  
+  // Check if form is valid
+  const isFormValid = () => {
+    return (
+      searchForm.travelDate &&
+      searchForm.startingFrom.trim() &&
+      searchForm.goingTo.trim() &&
+      validSelections.startingFrom &&
+      validSelections.goingTo &&
+      Object.keys(timeErrors).length === 0
+    )
+  }
+
+  // Auto-clear time errors when times become valid
+  useEffect(() => {
+    if (searchForm.preferredTimeStart && searchForm.preferredTimeEnd) {
+      const startMinutes = timeToMinutes(searchForm.preferredTimeStart);
+      const endMinutes = timeToMinutes(searchForm.preferredTimeEnd);
+      
+      if (startMinutes <= endMinutes && timeErrors.preferredTimeEnd) {
+        setTimeErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors.preferredTimeEnd
+          return newErrors
+        })
+      }
+    }
+  }, [searchForm.preferredTimeStart, searchForm.preferredTimeEnd, timeErrors.preferredTimeEnd])
 
   // Don't load rides on mount - show empty state until user searches
   useEffect(() => {
@@ -149,6 +212,12 @@ export default function RidesPage() {
   const handleLocationSelect = (location: any, field: "startingFrom" | "goingTo") => {
     setSearchForm((prev) => ({ ...prev, [field]: location.displayName }))
     setValidSelections((prev) => ({ ...prev, [field]: true }))
+    
+    // Clear form errors when valid location is selected
+    if (formErrors.length > 0) {
+      setFormErrors([])
+    }
+    
     setStartingSuggestions([])
     setDestinationSuggestions([])
     setShowStartingSuggestions(false)
@@ -215,8 +284,14 @@ export default function RidesPage() {
       return
     }
 
-    // Frontend validation
+    // Frontend validation - check required fields
     const errors: string[] = []
+    
+    if (!searchForm.travelDate) {
+      errors.push("Travel date is required")
+    } else if (searchForm.travelDate < getTodayStart()) {
+      errors.push("Travel date cannot be in the past")
+    }
     
     if (!searchForm.startingFrom.trim()) {
       errors.push("Starting location is required")
@@ -226,14 +301,8 @@ export default function RidesPage() {
       errors.push("Destination is required")
     }
     
-    // Check if travel date is in the past
-    if (searchForm.travelDate && searchForm.travelDate < new Date()) {
-      errors.push("Travel date cannot be in the past")
-    }
-    
-    // Travel date is optional for search
-    
     if (errors.length > 0) {
+      setFormErrors(errors)
       toast({
         title: "Validation Error",
         description: errors.join(", "),
@@ -242,6 +311,8 @@ export default function RidesPage() {
       return
     }
 
+    // Clear previous errors since validation passed
+    setFormErrors([])
     setIsSearching(true)
     try {
       // Build search parameters from form data
@@ -360,21 +431,27 @@ export default function RidesPage() {
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Travel Date</Label>
+                <Label>Travel Date <span className="text-red-500">*</span></Label>
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent">
+                      <Button variant="outline" className={`flex-1 justify-start text-left font-normal bg-transparent ${!searchForm.travelDate && formErrors.length > 0 ? "border-red-500 text-red-500" : ""}`}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {searchForm.travelDate ? format(searchForm.travelDate, "PPP") : "Select travel date"}
+                        {searchForm.travelDate ? format(searchForm.travelDate, "PPP") : "Select travel date *"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
                         selected={searchForm.travelDate}
-                        onSelect={(date) => setSearchForm((prev) => ({ ...prev, travelDate: date }))}
-                        disabled={(date) => date < new Date()}
+                        onSelect={(date) => {
+                          setSearchForm((prev) => ({ ...prev, travelDate: date }))
+                          // Clear errors when user selects a date
+                          if (date && formErrors.length > 0) {
+                            setFormErrors([])
+                          }
+                        }}
+                        disabled={(date) => date < getTodayStart()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -394,12 +471,12 @@ export default function RidesPage() {
               </div>
 
               <div className="space-y-2 relative">
-                <Label>Starting From</Label>
+                <Label>Starting From <span className="text-red-500">*</span></Label>
                 <Input
-                  placeholder="Enter starting location"
+                  placeholder="Enter starting location *"
                   value={searchForm.startingFrom}
                   onChange={(e) => handleLocationInputChange(e.target.value, "startingFrom")}
-                  className={`${!validSelections.startingFrom && searchForm.startingFrom ? "border-amber-500 bg-amber-50" : ""}`}
+                  className={`${!validSelections.startingFrom && searchForm.startingFrom ? "border-amber-500 bg-amber-50" : ""} ${!searchForm.startingFrom.trim() && formErrors.length > 0 ? "border-red-500" : ""}`}
                   onFocus={() => {
                     if (searchForm.startingFrom.length >= 2) {
                       handleLocationSearch(searchForm.startingFrom, "startingFrom")
@@ -440,12 +517,12 @@ export default function RidesPage() {
               </div>
 
               <div className="space-y-2 relative">
-                <Label>Going To</Label>
+                <Label>Going To <span className="text-red-500">*</span></Label>
                 <Input
-                  placeholder="Enter destination"
+                  placeholder="Enter destination *"
                   value={searchForm.goingTo}
                   onChange={(e) => handleLocationInputChange(e.target.value, "goingTo")}
-                  className={`${!validSelections.goingTo && searchForm.goingTo ? "border-amber-500 bg-amber-50" : ""}`}
+                  className={`${!validSelections.goingTo && searchForm.goingTo ? "border-amber-500 bg-amber-50" : ""} ${!searchForm.goingTo.trim() && formErrors.length > 0 ? "border-red-500" : ""}`}
                   onFocus={() => {
                     if (searchForm.goingTo.length >= 2) {
                       handleLocationSearch(searchForm.goingTo, "goingTo")
@@ -486,25 +563,78 @@ export default function RidesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Preferred Start Times of Travel</Label>
+                <Label>Preferred Earliest and Latest Start Times</Label>
                 <div className="flex gap-2">
-                  <TimeInput
-                    value={searchForm.preferredTimeStart}
-                    onChange={(value) => setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))}
-                    placeholder="Start time"
-                  />
-                  <TimeInput
-                    value={searchForm.preferredTimeEnd}
-                    onChange={(value) => setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))}
-                    placeholder="End time"
-                  />
+                  <div className="flex-1">
+                    <TimeInput
+                      value={searchForm.preferredTimeStart}
+                      onChange={(value) => {
+                        setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))
+                        // Clear any existing error for this field
+                        if (timeErrors.preferredTimeStart) {
+                          setTimeErrors(prev => {
+                            const newErrors = { ...prev }
+                            delete newErrors.preferredTimeStart
+                            return newErrors
+                          })
+                        }
+                        // Validate times when start time changes
+                        setTimeout(() => validateTimes(value, searchForm.preferredTimeEnd), 0)
+                      }}
+                      placeholder="Start time"
+                      className={timeErrors.preferredTimeStart ? 'border-red-500' : ''}
+                      error={timeErrors.preferredTimeStart}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <TimeInput
+                      value={searchForm.preferredTimeEnd}
+                      onChange={(value) => {
+                        setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))
+                        // Clear any existing error for this field
+                        if (timeErrors.preferredTimeEnd) {
+                          setTimeErrors(prev => {
+                            const newErrors = { ...prev }
+                            delete newErrors.preferredTimeEnd
+                            return newErrors
+                          })
+                        }
+                        // Validate times when end time changes
+                        setTimeout(() => validateTimes(searchForm.preferredTimeStart, value), 0)
+                      }}
+                      placeholder="End time"
+                      className={timeErrors.preferredTimeEnd ? 'border-red-500' : ''}
+                      error={timeErrors.preferredTimeEnd}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <Button onClick={handleSearch} className="w-full mt-4" disabled={isSearching}>
+            <Button 
+              onClick={handleSearch} 
+              className="w-full mt-4" 
+              disabled={isSearching || !isFormValid()}
+            >
               {isSearching ? "Searching..." : "Search Rides"}
             </Button>
+            {!isFormValid() && !isSearching && (
+              <div className="mt-2 text-center">
+                <p className="text-sm text-gray-600">
+                  Please fill all required fields (*) to search for rides
+                </p>
+                {Object.keys(timeErrors).length > 0 && (
+                  <div className="text-sm text-red-500 mt-1">
+                    <p>Please fix time validation errors:</p>
+                    <ul className="text-xs mt-1">
+                      {Object.entries(timeErrors).map(([field, error]) => (
+                        <li key={field}>• {error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -537,11 +667,11 @@ export default function RidesPage() {
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
-                          {format(new Date(ride.travelDate), "PPP")}
+                          {format(new Date(ride.travelDate + 'T12:00:00'), "PPP")}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {formatTimeRange(ride.departureStartTime, ride.departureEndTime)}
+                          Starting between {formatTimeRange(ride.departureStartTime, ride.departureEndTime)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4" />

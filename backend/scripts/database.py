@@ -103,19 +103,7 @@ def create_indexes():
         except OperationFailure as e:
             print(f"Warning: Could not create ride_interests indexes: {e}")
         
-        # Sublease posts collection indexes
-        sublease_posts = db.sublease_posts
-        try:
-            sublease_posts.create_index([("userId", ASCENDING)])
-            sublease_posts.create_index([("location", ASCENDING)])
-            sublease_posts.create_index([("startDate", ASCENDING)])
-            sublease_posts.create_index([("endDate", ASCENDING)])
-            sublease_posts.create_index([("monthlyRent", ASCENDING)])
-            sublease_posts.create_index([("status", ASCENDING)])
-            sublease_posts.create_index([("createdAt", DESCENDING)])
-        except OperationFailure as e:
-            print(f"Warning: Could not create sublease_posts indexes: {e}")
-        
+
         # Roommate requests collection indexes
         roommate_requests = db.roommate_requests
         try:

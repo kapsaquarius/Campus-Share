@@ -33,7 +33,7 @@ export default function HomePage() {
             Welcome to <span className="text-blue-600">CampusShare</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Your all-in-one platform for ride-sharing, roommate finding, and sublease management. Connect with fellow
+            Your all-in-one platform for ride-sharing and roommate finding. Connect with fellow
             students and make campus life easier.
           </p>
 
@@ -44,7 +44,7 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Everything You Need for Campus Life</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -73,24 +73,7 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <Home className="w-8 h-8 text-green-600" />
-                </div>
-                <CardTitle className="text-xl">Subleases</CardTitle>
-                <CardDescription>
-                  Find short-term housing or sublet your room during breaks and internships.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>Detailed property listings</li>
-                  <li>Photo galleries</li>
-                  <li>Proximity to campus info</li>
-                </ul>
-              </CardContent>
-            </Card>
+
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>

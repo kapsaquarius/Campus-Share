@@ -147,6 +147,15 @@ class ApiService {
     })
   }
 
+  async removeInterest(token: string, rideId: string) {
+    return this.request(`/rides/${rideId}/interest`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
   async getInterestedUsers(token: string, rideId: string) {
     return this.request(`/rides/${rideId}/interested-users`, {
       method: 'GET',

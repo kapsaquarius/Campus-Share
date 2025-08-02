@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ProtectedRoute } from "@/components/common/protected-route"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,20 @@ import { useAuth } from "@/contexts/auth-context"
 import { apiService } from "@/lib/api"
 import { TimeInput } from "@/components/ui/time-input"
 
+// Format time from 24h to 12h with AM/PM
+const formatTimeRange = (startTime: string, endTime: string) => {
+  const formatTime = (time: string) => {
+    if (!time) return time;
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+  
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+};
+
 interface CreateRideForm {
   startingFrom: string
   goingTo: string
@@ -32,6 +46,13 @@ interface CreateRideForm {
 }
 
 export default function CreateRidePage() {
+  // Helper function to get today's date at midnight (start of day)
+  const getTodayStart = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
+  
   const [formData, setFormData] = useState<CreateRideForm>({
     startingFrom: "",
     goingTo: "",
@@ -50,6 +71,28 @@ export default function CreateRidePage() {
   const { user, token } = useAuth()
 
   const { popularLocations, searchLocations } = useLocation()
+
+  // Auto-clear time errors when times become valid
+  useEffect(() => {
+    if (formData.departureStartTime && formData.departureEndTime) {
+      const timeToMinutes = (timeStr: string) => {
+        if (!timeStr) return 0;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+      
+      const startMinutes = timeToMinutes(formData.departureStartTime);
+      const endMinutes = timeToMinutes(formData.departureEndTime);
+      
+      if (startMinutes <= endMinutes && errors.departureEndTime) {
+        setErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors.departureEndTime
+          return newErrors
+        })
+      }
+    }
+  }, [formData.departureStartTime, formData.departureEndTime, errors.departureEndTime])
   const [startingSuggestions, setStartingSuggestions] = useState<any[]>([])
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([])
   const [showStartingSuggestions, setShowStartingSuggestions] = useState(false)
@@ -60,22 +103,88 @@ export default function CreateRidePage() {
     startingFrom: false,
     goingTo: false
   })
+  
+  // Handle input changes with validation
+  const handleInputChange = (field: keyof CreateRideForm, value: any) => {
+    const newFormData = { ...formData, [field]: value }
+    setFormData(newFormData)
+    
+    // Clear existing error for this field
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+    
+    // Real-time validation for time fields
+    if (field === 'departureStartTime' || field === 'departureEndTime') {
+      const startTime = field === 'departureStartTime' ? value : formData.departureStartTime
+      const endTime = field === 'departureEndTime' ? value : formData.departureEndTime
+      
+      // Helper function to convert time to minutes for comparison
+      const timeToMinutes = (timeStr: string) => {
+        if (!timeStr) return 0;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+      
+      if (startTime && endTime) {
+        const startMinutes = timeToMinutes(startTime);
+        const endMinutes = timeToMinutes(endTime);
+        
+        if (startMinutes > endMinutes) {
+          setErrors((prev) => ({ 
+            ...prev, 
+            departureEndTime: "Latest start time cannot be earlier than earliest start time" 
+          }))
+        } else {
+          // Clear any time-related error for departureEndTime
+          setErrors((prev) => {
+            const newErrors = { ...prev }
+            if (newErrors.departureEndTime && newErrors.departureEndTime.includes("time")) {
+              delete newErrors.departureEndTime
+            }
+            return newErrors
+          })
+        }
+      }
+    }
+  }
+
+  // Helper function to clear invalid location
+  const clearInvalidLocation = (field: "startingFrom" | "goingTo") => {
+    handleInputChange(field, "")
+    setValidSelections((prev) => ({ ...prev, [field]: false }))
+    setStartingSuggestions([])
+    setDestinationSuggestions([])
+    setShowStartingSuggestions(false)
+    setShowDestinationSuggestions(false)
+  }
+  
+  // Check if form is valid
+  const isFormValid = () => {
+    return (
+      formData.travelDate &&
+      formData.startingFrom.trim() &&
+      formData.goingTo.trim() &&
+      formData.departureStartTime &&
+      formData.departureEndTime &&
+      formData.availableSeats > 0 &&
+      Object.keys(errors).length === 0
+    )
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.startingFrom) {
       newErrors.startingFrom = "Starting location is required"
-    } else if (!validSelections.startingFrom) {
-      clearInvalidLocation("startingFrom")
-      newErrors.startingFrom = "Location cleared. Please select a valid location from the dropdown suggestions"
     }
 
     if (!formData.goingTo) {
       newErrors.goingTo = "Destination is required"
-    } else if (!validSelections.goingTo) {
-      clearInvalidLocation("goingTo")
-      newErrors.goingTo = "Location cleared. Please select a valid location from the dropdown suggestions"
     }
 
     if (formData.startingFrom === formData.goingTo) {
@@ -83,7 +192,7 @@ export default function CreateRidePage() {
     }
 
     // Check if travel date is in the past
-    if (formData.travelDate < new Date()) {
+    if (formData.travelDate < getTodayStart()) {
       newErrors.travelDate = "Travel date cannot be in the past"
     }
 
@@ -98,9 +207,9 @@ export default function CreateRidePage() {
     if (
       formData.departureStartTime &&
       formData.departureEndTime &&
-      formData.departureStartTime >= formData.departureEndTime
+      formData.departureStartTime > formData.departureEndTime
     ) {
-      newErrors.departureEndTime = "Latest start time must be after earliest start time"
+      newErrors.departureEndTime = "Latest start time cannot be earlier than earliest start time"
     }
 
     if (formData.availableSeats < 1 || formData.availableSeats > 8) {
@@ -136,7 +245,9 @@ export default function CreateRidePage() {
       const rideData = {
         startingFrom: formData.startingFrom,
         goingTo: formData.goingTo,
-        travelDate: formData.travelDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        travelDate: formData.travelDate.getFullYear() + '-' + 
+                   String(formData.travelDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(formData.travelDate.getDate()).padStart(2, '0'), // Format as YYYY-MM-DD without timezone conversion
         departureStartTime: formData.departureStartTime,
         departureEndTime: formData.departureEndTime,
         availableSeats: formData.availableSeats,
@@ -169,13 +280,6 @@ export default function CreateRidePage() {
       })
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleInputChange = (field: keyof CreateRideForm, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
     }
   }
 
@@ -240,15 +344,6 @@ export default function CreateRidePage() {
     handleLocationSearch(value, field)
   }
 
-  const clearInvalidLocation = (field: "startingFrom" | "goingTo") => {
-    handleInputChange(field, "")
-    setValidSelections((prev) => ({ ...prev, [field]: false }))
-    setStartingSuggestions([])
-    setDestinationSuggestions([])
-    setShowStartingSuggestions(false)
-    setShowDestinationSuggestions(false)
-  }
-
   return (
     <ProtectedRoute>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -270,12 +365,12 @@ export default function CreateRidePage() {
               {/* Route Information */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2 relative">
-                  <Label htmlFor="startingFrom">Starting From</Label>
+                  <Label htmlFor="startingFrom">Starting From <span className="text-red-500">*</span></Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="startingFrom"
-                      placeholder="Enter starting location"
+                      placeholder="Enter starting location *"
                       value={formData.startingFrom}
                       onChange={(e) => handleLocationInputChange(e.target.value, "startingFrom")}
                       className={`pl-10 ${errors.startingFrom ? "border-red-500" : ""} ${!validSelections.startingFrom && formData.startingFrom ? "border-amber-500 bg-amber-50" : ""}`}
@@ -320,12 +415,12 @@ export default function CreateRidePage() {
                 </div>
 
                 <div className="space-y-2 relative">
-                  <Label htmlFor="goingTo">Going To</Label>
+                  <Label htmlFor="goingTo">Going To <span className="text-red-500">*</span></Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="goingTo"
-                      placeholder="Enter destination"
+                      placeholder="Enter destination *"
                       value={formData.goingTo}
                       onChange={(e) => handleLocationInputChange(e.target.value, "goingTo")}
                       onFocus={() => {
@@ -373,11 +468,11 @@ export default function CreateRidePage() {
               {/* Date and Time */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Travel Date</Label>
+                  <Label>Travel Date <span className="text-red-500">*</span></Label>
                   <div className="flex gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent">
+                        <Button variant="outline" className={`flex-1 justify-start text-left font-normal bg-transparent ${errors.travelDate ? "border-red-500 text-red-500" : ""}`}>
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {format(formData.travelDate, "PPP")}
                         </Button>
@@ -387,7 +482,7 @@ export default function CreateRidePage() {
                           mode="single"
                           selected={formData.travelDate}
                           onSelect={(date) => date && handleInputChange("travelDate", date)}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => date < getTodayStart()}
                           initialFocus
                         />
                       </PopoverContent>
@@ -398,23 +493,31 @@ export default function CreateRidePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="departureStartTime">Preferred Start Time (Earliest)</Label>
+                  <Label htmlFor="departureStartTime">Earliest Start Time<span className="text-red-500">*</span></Label>
                   <TimeInput
                     key="start-time"
                     value={formData.departureStartTime}
                     onChange={(value) => handleInputChange("departureStartTime", value)}
-                    placeholder="Earliest departure time"
+                    placeholder="Earliest departure time *"
                     error={errors.departureStartTime}
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="departureEndTime">Preferred Start Time (Latest)</Label>
+                  <Label htmlFor="departureEndTime">Latest Start Time<span className="text-red-500">*</span></Label>
                   <TimeInput
                     key="end-time"
                     value={formData.departureEndTime}
-                    onChange={(value) => handleInputChange("departureEndTime", value)}
+                    onChange={(value) => {
+                      // Clear any existing departureEndTime error first
+                      setErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.departureEndTime
+                        return newErrors
+                      })
+                      handleInputChange("departureEndTime", value)
+                    }}
                     placeholder="Latest departure time"
                     error={errors.departureEndTime}
                     required
@@ -462,10 +565,7 @@ export default function CreateRidePage() {
                         className={`pl-10 ${errors.suggestedContribution ? "border-red-500" : ""}`}
                         placeholder="Enter amount (optional)"
                       />
-                    </div>
-                    <div className="flex items-center px-3 py-2 bg-gray-50 border rounded-md text-sm text-gray-600">
-                      USD
-                    </div>
+                                      </div>
                   </div>
                   {errors.suggestedContribution && (
                     <p className="text-sm text-red-500">{errors.suggestedContribution}</p>
@@ -487,8 +587,8 @@ export default function CreateRidePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {formData.departureStartTime && formData.departureEndTime 
-                      ? `Flexible start time: ${formData.departureStartTime} - ${formData.departureEndTime}`
+                    {formData.departureStartTime && formData.departureEndTime && !errors.departureEndTime
+                      ? `Starting between ${formatTimeRange(formData.departureStartTime, formData.departureEndTime)}`
                       : "Preferred time range to be specified"
                     }
                   </div>
@@ -505,13 +605,18 @@ export default function CreateRidePage() {
                   </div>
                 </div>
               </div>
+              {!isFormValid() && !isLoading && (
+                <p className="text-sm text-gray-600 text-center">
+                  Please fill all required fields (*) to post your ride
+                </p>
+              )}
 
               {/* Submit Button */}
               <div className="flex gap-4">
                 <Button type="button" variant="outline" className="flex-1 bg-transparent" onClick={() => router.back()}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isLoading}>
+                <Button type="submit" className="flex-1" disabled={isLoading || !isFormValid()}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

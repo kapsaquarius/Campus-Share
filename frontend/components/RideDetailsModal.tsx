@@ -138,7 +138,7 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-500" />
-                    <span>{formatTimeRange(ride.departureStartTime, ride.departureEndTime)}</span>
+                    <span>Starting between {formatTimeRange(ride.departureStartTime, ride.departureEndTime)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-gray-500" />

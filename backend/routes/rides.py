@@ -4,7 +4,7 @@ from bson import ObjectId
 from scripts.database import get_collection, format_object_id, format_object_id_list
 from routes.auth import get_current_user
 from services.ride_service import search_rides_with_scoring, get_ride_with_details
-from services.notification_service import create_ride_interest_notification, create_ride_update_notification, create_ride_cancellation_notifications
+from services.notification_service import create_ride_interest_notification, create_ride_interest_removed_notification, create_ride_update_notification, create_ride_cancellation_notifications
 
 rides_bp = Blueprint('rides', __name__)
 
@@ -216,6 +216,53 @@ def express_interest(ride_id):
         
     except Exception as e:
         return jsonify({'error': f'Failed to express interest: {str(e)}'}), 400
+
+@rides_bp.route('/<ride_id>/interest', methods=['DELETE'])
+def remove_interest(ride_id):
+    """Remove interest in a ride"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        ride_id = ObjectId(ride_id)
+        
+        # Check if ride exists
+        ride_posts = get_collection('ride_posts')
+        ride = ride_posts.find_one({'_id': ride_id})
+        
+        if not ride:
+            return jsonify({'error': 'Ride not found'}), 404
+        
+        # Check if user has expressed interest
+        ride_interests = get_collection('ride_interests')
+        existing_interest = ride_interests.find_one({
+            'rideId': ride_id,
+            'interestedUserId': ObjectId(user['_id']),
+            'status': 'interested'
+        })
+        
+        if not existing_interest:
+            return jsonify({'error': 'You have not expressed interest in this ride'}), 400
+        
+        # Remove the interest record
+        result = ride_interests.delete_one({
+            'rideId': ride_id,
+            'interestedUserId': ObjectId(user['_id'])
+        })
+        
+        if result.deleted_count == 0:
+            return jsonify({'error': 'Failed to remove interest'}), 400
+        
+        # Send notification to ride owner
+        create_ride_interest_removed_notification(ride_id, user['_id'], ride)
+        
+        return jsonify({
+            'message': 'Interest removed successfully'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to remove interest: {str(e)}'}), 400
 
 @rides_bp.route('/<ride_id>/interested-users', methods=['GET'])
 def get_interested_users(ride_id):

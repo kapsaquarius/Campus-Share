@@ -12,7 +12,7 @@ export function Footer() {
               </div>
               <span className="text-xl font-bold text-gray-900">CampusShare</span>
             </div>
-            <p className="text-gray-600 text-sm">Connecting students for rides, roommates, and subleases.</p>
+            <p className="text-gray-600 text-sm">Connecting students for rides and roommates.</p>
           </div>
 
           <div>
@@ -23,11 +23,7 @@ export function Footer() {
                   Ride Sharing
                 </Link>
               </li>
-              <li>
-                <Link href="/subleases" className="hover:text-blue-600">
-                  Subleases
-                </Link>
-              </li>
+
               <li>
                 <Link href="/roommates" className="hover:text-blue-600">
                   Roommate Finder

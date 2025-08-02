@@ -26,7 +26,7 @@ def get_notifications():
                 'title': notif['title'], 
                 'message': notif['message'],
                 'read': notif.get('read', False),
-                'createdAt': notif['createdAt'].isoformat() if hasattr(notif['createdAt'], 'isoformat') else str(notif['createdAt']),
+                'createdAt': notif['createdAt'].isoformat() + 'Z' if hasattr(notif['createdAt'], 'isoformat') else str(notif['createdAt']),
                 'relatedId': str(notif['relatedId']) if notif.get('relatedId') else None
             }
             formatted_notifications.append(formatted_notif)
