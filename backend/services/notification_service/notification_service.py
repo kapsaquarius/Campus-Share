@@ -1,6 +1,8 @@
 from datetime import datetime
 from bson import ObjectId
 from scripts.database import get_collection
+from services.email_service.email_service import email_service, EmailTemplates
+from config import config
 
 def create_notification(user_id, type, title, message, related_id=None):
     """Create a new notification"""
@@ -28,34 +30,100 @@ def create_ride_interest_notification(ride_id, interested_user_id, ride_details)
     users = get_collection('users')
     interested_user = users.find_one({'_id': ObjectId(interested_user_id)})
     
-    return create_notification(
+    # Create in-app notification
+    notification_created = create_notification(
         user_id=ride_details['userId'],
         type='ride_interest',
         title='New Ride Interest',
         message=f"{interested_user['name']} is interested in your ride from {ride_details['startingFrom']} to {ride_details['goingTo']}",
         related_id=ride_id
     )
+    
+    # Send email notification
+    if notification_created:
+        try:
+            # Get ride owner's email
+            ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
+            if ride_owner and ride_owner.get('email'):
+                # Prepare ride details for email
+                ride_email_details = {
+                    'source': ride_details.get('startingFrom', ''),
+                    'destination': ride_details.get('goingTo', ''),
+                    'date': ride_details.get('travelDate', ''),
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                }
+                
+                subject, html_content, text_content = EmailTemplates.ride_interest_notification(
+                    interested_user['name'], 
+                    ride_email_details,
+                    config.FRONTEND_URL
+                )
+                email_service.send_email(
+                    to_email=ride_owner['email'],
+                    to_name=ride_owner['name'],
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content
+                )
+        except Exception as e:
+            print(f"Error sending ride interest email: {e}")
+    
+    return notification_created
 
 def create_ride_interest_removed_notification(ride_id, removed_user_id, ride_details):
     """Create notification when someone removes their interest from a ride"""
     users = get_collection('users')
     removed_user = users.find_one({'_id': ObjectId(removed_user_id)})
     
-    return create_notification(
+    # Create in-app notification
+    notification_created = create_notification(
         user_id=ride_details['userId'],
         type='ride_interest_removed',
         title='Interest Removed',
         message=f"{removed_user['name']} is no longer interested in your ride from {ride_details['startingFrom']} to {ride_details['goingTo']}",
         related_id=ride_id
     )
+    
+    # Send email notification
+    if notification_created:
+        try:
+            # Get ride owner's email
+            ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
+            if ride_owner and ride_owner.get('email'):
+                # Prepare ride details for email
+                ride_email_details = {
+                    'source': ride_details.get('startingFrom', ''),
+                    'destination': ride_details.get('goingTo', ''),
+                    'date': ride_details.get('travelDate', ''),
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                }
+                
+                subject, html_content, text_content = EmailTemplates.interest_removed_notification(
+                    removed_user['name'], 
+                    ride_email_details,
+                    config.FRONTEND_URL
+                )
+                email_service.send_email(
+                    to_email=ride_owner['email'],
+                    to_name=ride_owner['name'],
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content
+                )
+        except Exception as e:
+            print(f"Error sending interest removed email: {e}")
+    
+    return notification_created
 
 def create_ride_update_notification(ride_id, ride_details):
     """Create notification for ride updates"""
     ride_interests = get_collection('ride_interests')
     interested_users = ride_interests.find({'rideId': ride_id})
+    users = get_collection('users')
     
     notifications_created = 0
     for interest in interested_users:
+        # Create in-app notification
         success = create_notification(
             user_id=interest['interestedUserId'],
             type='ride_update',
@@ -63,8 +131,40 @@ def create_ride_update_notification(ride_id, ride_details):
             message=f"Your interested ride from {ride_details['startingFrom']} to {ride_details['goingTo']} has been updated",
             related_id=ride_id
         )
+        
         if success:
             notifications_created += 1
+            
+            # Send email notification
+            try:
+                interested_user = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
+                if interested_user and interested_user.get('email'):
+                    # Prepare ride details for email
+                    ride_email_details = {
+                        'source': ride_details.get('startingFrom', ''),
+                        'destination': ride_details.get('goingTo', ''),
+                        'date': ride_details.get('travelDate', ''),
+                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                    }
+                    
+                    # For ride updates, we need to determine which fields were updated
+                    updated_fields = ['ride details']  # Generic for now - could be more specific
+                    
+                    subject, html_content, text_content = EmailTemplates.ride_updated_notification(
+                        interested_user['name'], 
+                        ride_email_details,
+                        updated_fields,
+                        config.FRONTEND_URL
+                    )
+                    email_service.send_email(
+                        to_email=interested_user['email'],
+                        to_name=interested_user['name'],
+                        subject=subject,
+                        html_content=html_content,
+                        text_content=text_content
+                    )
+            except Exception as e:
+                print(f"Error sending ride update email to {interest['interestedUserId']}: {e}")
     
     return notifications_created
 
@@ -72,9 +172,11 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
     """Create notifications for ride cancellation"""
     ride_interests = get_collection('ride_interests')
     interested_users = ride_interests.find({'rideId': ride_id})
+    users = get_collection('users')
     
     notifications_created = 0
     for interest in interested_users:
+        # Create in-app notification
         success = create_notification(
             user_id=interest['interestedUserId'],
             type='ride_cancelled',
@@ -82,8 +184,36 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
             message=f"Your interested ride from {ride_details['startingFrom']} to {ride_details['goingTo']} has been cancelled",
             related_id=ride_id
         )
+        
         if success:
             notifications_created += 1
+            
+            # Send email notification
+            try:
+                interested_user = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
+                if interested_user and interested_user.get('email'):
+                    # Prepare ride details for email
+                    ride_email_details = {
+                        'source': ride_details.get('startingFrom', ''),
+                        'destination': ride_details.get('goingTo', ''),
+                        'date': ride_details.get('travelDate', ''),
+                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                    }
+                    
+                    subject, html_content, text_content = EmailTemplates.ride_cancelled_notification(
+                        interested_user['name'], 
+                        ride_email_details,
+                        config.FRONTEND_URL
+                    )
+                    email_service.send_email(
+                        to_email=interested_user['email'],
+                        to_name=interested_user['name'],
+                        subject=subject,
+                        html_content=html_content,
+                        text_content=text_content
+                    )
+            except Exception as e:
+                print(f"Error sending ride cancellation email to {interest['interestedUserId']}: {e}")
     
     return notifications_created
 
