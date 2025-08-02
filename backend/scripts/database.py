@@ -69,7 +69,7 @@ def create_indexes():
                 print(f"Warning: Could not create username index: {e}")
         
         try:
-            users.create_index([("email", ASCENDING)], unique=True)
+            users.create_index([("email", ASCENDING)], unique=False)
         except OperationFailure as e:
             if "already exists" not in str(e):
                 print(f"Warning: Could not create email index: {e}")

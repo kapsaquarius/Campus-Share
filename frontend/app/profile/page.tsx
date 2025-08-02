@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const currentUser = user
 
   const [formData, setFormData] = useState({
+    email: currentUser?.email || "",
     phoneNumber: currentUser?.phoneNumber || "",
     whatsappNumber: currentUser?.whatsappNumber || "",
   })
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (currentUser) {
       setFormData({
+        email: currentUser.email || "",
         phoneNumber: currentUser.phoneNumber || "",
         whatsappNumber: currentUser.whatsappNumber || "",
       })
@@ -43,6 +45,13 @@ export default function ProfilePage() {
     let error = ""
     
     switch (fieldName) {
+      case "email":
+        if (!value) {
+          error = "Email is required"
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = "Please enter a valid email address"
+        }
+        break
       case "phoneNumber":
         if (value) {
           const phoneValidation = validatePhoneNumber(value)
@@ -61,14 +70,25 @@ export default function ProfilePage() {
         break
     }
     
-    setValidationErrors(prev => ({
-      ...prev,
-      [fieldName]: error
-    }))
+    setValidationErrors(prev => {
+      const newErrors = { ...prev }
+      if (error) {
+        newErrors[fieldName] = error
+      } else {
+        delete newErrors[fieldName]
+      }
+      return newErrors
+    })
   }
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
+    
+    if (!formData.email) {
+      errors.email = "Email is required"
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = "Please enter a valid email address"
+    }
     
     if (formData.phoneNumber) {
       const phoneValidation = validatePhoneNumber(formData.phoneNumber)
@@ -104,7 +124,7 @@ export default function ProfilePage() {
         title: "Profile updated successfully!",
         description: "Your changes have been saved.",
       })
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Failed to update profile",
         description: "Please try again or contact support.",
@@ -117,6 +137,7 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setFormData({
+      email: currentUser?.email || "",
       phoneNumber: currentUser?.phoneNumber || "",
       whatsappNumber: currentUser?.whatsappNumber || "",
     })
@@ -212,9 +233,28 @@ export default function ProfilePage() {
                   <Label htmlFor="email">Email Address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="email" value={currentUser?.email || ""} disabled className="pl-10 bg-gray-50" />
+                    {!isEditing ? (
+                      <Input id="email" value={currentUser?.email || ""} disabled className="pl-10 bg-gray-50" />
+                    ) : (
+                      <Input 
+                        id="email" 
+                        value={formData.email} 
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setFormData((prev) => ({ ...prev, email: value }))
+                          validateField("email", value)
+                        }}
+                        className={`pl-10 ${validationErrors.email ? "border-red-500" : ""}`}
+                        placeholder="Enter your email address"
+                      />
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500">Email cannot be changed</p>
+                  {isEditing && (
+                    <>
+                      {validationErrors.email && <p className="text-sm text-red-500">{validationErrors.email}</p>}
+                      <p className="text-xs text-gray-500">Update your email address for account notifications</p>
+                    </>
+                  )}
                 </div>
               </div>
 

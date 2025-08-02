@@ -42,9 +42,7 @@ class UserService:
         if self.users.find_one({"username": username}):
             raise ValueError("Username already exists")
         
-        # Check if email already exists
-        if self.users.find_one({"email": email}):
-            raise ValueError("Email already exists")
+
         
         # Hash the password
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -84,7 +82,6 @@ class UserService:
         # Remove sensitive fields from updates
         updates.pop('password', None)
         updates.pop('username', None)
-        updates.pop('email', None)
         
         updates['updatedAt'] = datetime.utcnow()
         

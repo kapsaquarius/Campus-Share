@@ -24,6 +24,7 @@ interface RegisterData {
 }
 
 interface ProfileData {
+  email: string
   phoneNumber: string
   whatsappNumber: string
 }
@@ -132,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const response = await apiService.updateProfile(token, {
+        email: profileData.email,
         phone: profileData.phoneNumber,
         whatsapp: profileData.whatsappNumber,
       })

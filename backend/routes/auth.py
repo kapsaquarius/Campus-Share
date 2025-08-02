@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 import jwt
+from bson import ObjectId
 from services.user_service.user_service import user_service
 from utils.auth_helpers import create_jwt_token, verify_token
 
@@ -89,7 +90,7 @@ def update_profile():
             return jsonify({"error": "Unauthorized"}), 401
         
         data = request.get_json()
-        allowed_updates = ['name', 'phone', 'whatsapp']
+        allowed_updates = ['name', 'phone', 'whatsapp', 'email']
         
         updates = {}
         for field in allowed_updates:
@@ -101,6 +102,8 @@ def update_profile():
             updates['phone'] = data['phoneNumber']
         if 'whatsappNumber' in data:
             updates['whatsapp'] = data['whatsappNumber']
+        
+
         
         if not updates:
             return jsonify({"error": "No valid fields to update"}), 400
