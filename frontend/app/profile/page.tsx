@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Phone, MessageCircle, Edit, Save, X, Calendar, Mail, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
-import { CountryPhoneInput } from "@/components/ui/country-phone-input"
+import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
@@ -25,15 +25,47 @@ export default function ProfilePage() {
     phoneNumber: currentUser?.phoneNumber || "",
     whatsappNumber: currentUser?.whatsappNumber || "",
   })
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+    
+    if (formData.phoneNumber) {
+      const phoneValidation = validatePhoneNumber(formData.phoneNumber)
+      if (!phoneValidation.isValid) {
+        errors.phoneNumber = phoneValidation.error || "Invalid phone number"
+      }
+    }
+    
+    if (formData.whatsappNumber) {
+      const whatsappValidation = validatePhoneNumber(formData.whatsappNumber)
+      if (!whatsappValidation.isValid) {
+        errors.whatsappNumber = whatsappValidation.error || "Invalid WhatsApp number"
+      }
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSave = async () => {
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       if (updateProfile) {
         await updateProfile(formData)
       }
       setIsEditing(false)
+      setValidationErrors({})
       toast({
         title: "Profile updated successfully!",
         description: "Your changes have been saved.",
@@ -54,6 +86,7 @@ export default function ProfilePage() {
       phoneNumber: currentUser?.phoneNumber || "",
       whatsappNumber: currentUser?.whatsappNumber || "",
     })
+    setValidationErrors({})
     setIsEditing(false)
   }
 
@@ -200,8 +233,15 @@ export default function ProfilePage() {
                       id="phoneNumber"
                       label="Phone Number"
                       value={formData.phoneNumber}
-                      onChange={(value) => setFormData((prev) => ({ ...prev, phoneNumber: value }))}
+                      onChange={(value) => {
+                        setFormData((prev) => ({ ...prev, phoneNumber: value }))
+                        // Clear validation error when user starts typing
+                        if (validationErrors.phoneNumber) {
+                          setValidationErrors(prev => ({ ...prev, phoneNumber: "" }))
+                        }
+                      }}
                       placeholder="Enter phone number"
+                      error={validationErrors.phoneNumber}
                       helpText="This will be shared with interested riders to contact you directly"
                     />
 
@@ -209,8 +249,15 @@ export default function ProfilePage() {
                       id="whatsappNumber"
                       label="WhatsApp Number"
                       value={formData.whatsappNumber}
-                      onChange={(value) => setFormData((prev) => ({ ...prev, whatsappNumber: value }))}
+                      onChange={(value) => {
+                        setFormData((prev) => ({ ...prev, whatsappNumber: value }))
+                        // Clear validation error when user starts typing
+                        if (validationErrors.whatsappNumber) {
+                          setValidationErrors(prev => ({ ...prev, whatsappNumber: "" }))
+                        }
+                      }}
                       placeholder="Enter WhatsApp number"
+                      error={validationErrors.whatsappNumber}
                       helpText="This will be shared with interested riders for WhatsApp communication"
                     />
                   </>

@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Eye, EyeOff, Loader2, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { CountryPhoneInput } from "@/components/ui/country-phone-input"
+import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
 
 interface FormData {
   username: string
@@ -97,23 +97,13 @@ export default function RegisterPage() {
 
       case "phone":
         if (!value) return "Phone number is required"
-        if (!value.startsWith('+')) return "Phone number must include country code"
-        const phonePattern = /^\+[\d\s\-\(\)]{4,}$/
-        if (!phonePattern.test(value.trim())) return "Please enter a valid phone number with country code"
-        // Check if it has enough digits after country code
-        const digitsOnly = value.replace(/[^\d]/g, '')
-        if (digitsOnly.length < 7) return "Phone number is too short"
-        return ""
+        const phoneValidation = validatePhoneNumber(value)
+        return phoneValidation.isValid ? "" : phoneValidation.error || "Invalid phone number"
 
       case "whatsapp":
         if (!value) return "WhatsApp number is required"
-        if (!value.startsWith('+')) return "WhatsApp number must include country code"
-        const whatsappPattern = /^\+[\d\s\-\(\)]{4,}$/
-        if (!whatsappPattern.test(value.trim())) return "Please enter a valid WhatsApp number with country code"
-        // Check if it has enough digits after country code
-        const whatsappDigitsOnly = value.replace(/[^\d]/g, '')
-        if (whatsappDigitsOnly.length < 7) return "WhatsApp number is too short"
-        return ""
+        const whatsappValidation = validatePhoneNumber(value)
+        return whatsappValidation.isValid ? "" : whatsappValidation.error || "Invalid WhatsApp number"
 
       case "agreeToTerms":
         if (!value) return "You must agree to the Terms of Service"
