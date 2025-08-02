@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ProtectedRoute } from "@/components/common/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -149,17 +150,9 @@ export default function MyInterestedRidesPage() {
     return `${displayHour}:${minutes} ${ampm}`
   }
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-        <p className="text-gray-600">You need to be logged in to view your interested rides.</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">My Interested Rides</h1>
         <p className="text-gray-600">Rides you've expressed interest in, with driver contact details</p>
@@ -363,6 +356,7 @@ export default function MyInterestedRidesPage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

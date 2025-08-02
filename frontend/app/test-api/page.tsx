@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ProtectedRoute } from "@/components/common/protected-route"
 import { apiService } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,7 +58,8 @@ export default function TestApiPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>API Connection Test</CardTitle>
@@ -103,6 +105,7 @@ export default function TestApiPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 } 
