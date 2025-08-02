@@ -11,10 +11,8 @@ from decimal import Decimal
 from scripts.database import init_db, get_db
 from routes.auth import auth_bp, verify_token
 from routes.rides import rides_bp
-from routes.roommates import roommates_bp
-
 from routes.notifications import notifications_bp
-from routes.reviews import reviews_bp
+
 from routes.locations import locations_bp
 from config import config
 
@@ -39,10 +37,7 @@ init_db()
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(rides_bp, url_prefix='/api/rides')
-app.register_blueprint(roommates_bp, url_prefix='/api/roommates')
-
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
-app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
 app.register_blueprint(locations_bp, url_prefix='/api/locations')
 
 # Custom JSON encoder for ObjectId and Decimal

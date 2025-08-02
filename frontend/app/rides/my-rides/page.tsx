@@ -271,18 +271,19 @@ export default function MyRidesPage() {
 
   const formatDate = (dateString: string) => {
     try {
-      // If the string already contains time info, use it as is
-      // Otherwise, add T12:00:00 to avoid timezone issues
-      const dateToFormat = dateString.includes('T') 
-        ? new Date(dateString)
-        : new Date(dateString + 'T12:00:00');
+      if (!dateString) return 'Invalid Date';
       
-      return dateToFormat.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      // If the string contains time info (like timestamps), format it normally
+      if (dateString.includes('T')) {
+        return format(new Date(dateString), "eee, MMM dd, yyyy");
+      }
+      
+      // For date-only strings, parse as local date to avoid timezone issues
+      // If dateString is "2025-08-03", we want it to stay August 3rd regardless of timezone
+      const [year, month, day] = dateString.split('-').map(Number);
+      const localDate = new Date(year, month - 1, day); // month is 0-indexed
+      
+      return format(localDate, "eee, MMM dd, yyyy");
     } catch (error) {
       return 'Invalid Date';
     }

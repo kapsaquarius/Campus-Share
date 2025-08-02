@@ -9,8 +9,8 @@ export default function PrivacyPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Information We Collect</h2>
           <p className="text-gray-700 mb-4">
-            We collect information you provide directly to us, such as when you create an account, post a ride or
-            sublease, or contact us for support.
+            We collect information you provide directly to us, such as when you create an account, post a ride,
+            or contact us for support.
           </p>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Personal Information</h3>
           <ul className="list-disc pl-6 text-gray-700 mb-4">
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">3. Information Sharing</h2>
           <p className="text-gray-700 mb-4">We may share your information in the following situations:</p>
           <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li>With other users when you post rides, subleases, or roommate requests</li>
+            <li>With other users when you post rides</li>
             <li>With service providers who perform services on our behalf</li>
             <li>If required by law or to protect our rights</li>
             <li>In connection with a merger, sale, or acquisition</li>

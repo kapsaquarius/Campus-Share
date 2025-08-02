@@ -28,7 +28,7 @@ def get_locations():
 
 @locations_bp.route('/search', methods=['GET'])
 def search_locations():
-    """Search locations - this is what users need for ride/sublease search"""
+    """Search locations - this is what users need for ride search"""
     try:
         query = request.args.get('q', '').strip()
         limit = int(request.args.get('limit', 10))
@@ -47,7 +47,7 @@ def search_locations():
 
 @locations_bp.route('/<location_id>', methods=['GET'])
 def get_location(location_id):
-    """Get a specific location by ID - needed for ride/sublease references"""
+    """Get a specific location by ID - needed for ride references"""
     try:
         location = location_service.get_location_by_id(location_id)
         

@@ -11,25 +11,21 @@ export default function HelpPage() {
       answer:
         "To create a ride posting, go to the Rides page and click 'Create Ride'. Fill out the form with your departure location, destination, date, time, available seats, and suggested contribution. Your ride will be visible to other students immediately.",
     },
-    {
-      question: "How does the roommate matching work?",
-      answer:
-        "Our roommate matching algorithm considers your lifestyle preferences, budget range, cleanliness level, sleep schedule, and other factors to calculate compatibility scores with other users. Higher scores indicate better matches.",
-    },
+
     {
       question: "Is it safe to share my contact information?",
       answer:
-        "Your contact information is only shared with users who express interest in your posts or match with your roommate request. We recommend meeting in public places and trusting your instincts when connecting with new people.",
+        "Your contact information is only shared with users who express interest in your posts. We recommend meeting in public places and trusting your instincts when connecting with new people.",
     },
     {
-      question: "How do I cancel a ride or sublease posting?",
+      question: "How do I cancel a ride posting?",
       answer:
-        "You can cancel your postings by going to your profile page, finding the posting under 'My Rides' or 'My Subleases', and clicking the delete button. All interested users will be notified of the cancellation.",
+        "You can cancel your postings by going to your profile page, finding the posting under 'My Rides', and clicking the delete button. All interested users will be notified of the cancellation.",
     },
     {
       question: "What should I do if someone doesn't show up for a ride?",
       answer:
-        "If someone doesn't show up, you can leave a review about the experience. Repeated no-shows may result in account restrictions. Always have backup plans and communicate clearly about meeting times and locations.",
+        "If someone doesn't show up, you can report the issue to support. Repeated no-shows may result in account restrictions. Always have backup plans and communicate clearly about meeting times and locations.",
     },
     {
       question: "How do I report inappropriate behavior?",

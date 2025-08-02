@@ -33,6 +33,18 @@ const formatTimeRange = (startTime: string, endTime: string) => {
   return `${formatTime(startTime)} - ${formatTime(endTime)}`;
 };
 
+// Format date string as local date to avoid timezone issues
+const formatDate = (dateString: string) => {
+  if (!dateString) return dateString;
+  
+  // Parse date string as local date to avoid timezone issues
+  // If dateString is "2025-08-03", we want it to stay August 3rd regardless of timezone
+  const [year, month, day] = dateString.split('-').map(Number);
+  const localDate = new Date(year, month - 1, day); // month is 0-indexed
+  
+  return format(localDate, "PPP");
+};
+
 interface Ride {
   _id: string
   startingFrom: {
@@ -667,7 +679,7 @@ export default function RidesPage() {
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
-                          {format(new Date(ride.travelDate + 'T12:00:00'), "PPP")}
+                          {formatDate(ride.travelDate)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />

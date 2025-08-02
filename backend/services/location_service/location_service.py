@@ -42,7 +42,7 @@ class LocationService:
         return conditions
     
     def get_location_by_id(self, location_id: str) -> Optional[Dict]:
-        """Get a location by ID - needed for ride/sublease references"""
+        """Get a location by ID - needed for ride references"""
         location = self.locations.find_one({'_id': ObjectId(location_id)})
         return self._format_location(location) if location else None
     

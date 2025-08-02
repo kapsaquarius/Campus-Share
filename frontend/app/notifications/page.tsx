@@ -21,8 +21,6 @@ export default function NotificationsPage() {
       case "ride_update":
       case "ride_cancellation":
         return <Car className="w-5 h-5 text-blue-600" />
-      case "sublease_interest":
-        return <Home className="w-5 h-5 text-green-600" />
       default:
         return <Bell className="w-5 h-5 text-gray-600" />
     }

@@ -109,13 +109,18 @@ export function InterestedUsersModal({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'Invalid Date';
+    
+    // Parse date string as local date to avoid timezone issues
+    // If dateString is "2025-08-03", we want it to stay August 3rd regardless of timezone
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day); // month is 0-indexed
+    
+    return localDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+      day: 'numeric'
+    });
   }
 
   const openWhatsApp = (number: string) => {
@@ -141,7 +146,7 @@ export function InterestedUsersModal({
             <span className="font-medium">{rideInfo.startingFrom}</span> to{' '}
             <span className="font-medium">{rideInfo.goingTo}</span> on{' '}
             <span className="font-medium">
-              {new Date(rideInfo.travelDate).toLocaleDateString()}
+              {formatDate(rideInfo.travelDate)}
             </span>
           </DialogDescription>
         </DialogHeader>

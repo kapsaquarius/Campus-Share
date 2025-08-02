@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { useNotifications } from "@/contexts/notification-context"
@@ -13,22 +12,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Car, Home, Users, User, LogOut, Menu, X, Plus, Heart } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
+import { Bell, Car, User, LogOut, Plus, Heart } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
-  const pathname = usePathname()
-
-
-
-  const navigation = [
-    { name: "Find Rides", href: "/rides", icon: Car },
-    { name: "Find Roommates", href: "/roommates", icon: Users },
-  ]
 
   const handleLogout = () => {
     logout()
@@ -47,33 +37,6 @@ export function Header() {
             </div>
             <span className="text-xl font-bold text-gray-900">CampusShare</span>
           </Link>
-
-          {/* Desktop Navigation - Only show when authenticated */}
-          {user && (
-            <nav className="hidden md:flex space-x-8">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center space-x-1 transition-colors relative ${
-                      isActive 
-                        ? "text-blue-600 font-medium" 
-                        : "text-gray-600 hover:text-blue-600"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                    {isActive && (
-                      <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
-                    )}
-                  </Link>
-                )
-              })}
-            </nav>
-          )}
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
@@ -127,18 +90,6 @@ export function Header() {
                         <span>My Interested Rides</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/roommates/my-requests" className="flex items-center space-x-2">
-                        <Users className="w-4 h-4" />
-                        <span>My Requests</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/reviews" className="flex items-center space-x-2">
-                        <Bell className="w-4 h-4" />
-                        <span>Reviews</span>
-                      </Link>
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2">
                       <LogOut className="w-4 h-4" />
@@ -157,40 +108,8 @@ export function Header() {
                 </Button>
               </div>
             )}
-
-            {/* Mobile Menu Button */}
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
           </div>
         </div>
-
-        {/* Mobile Navigation - Only show when authenticated */}
-        {mobileMenuOpen && user && (
-          <div className="md:hidden py-4 border-t">
-            <nav className="flex flex-col space-y-2">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
-                      isActive
-                        ? "text-blue-600 bg-blue-50 font-medium border-l-4 border-blue-600"
-                        : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   )

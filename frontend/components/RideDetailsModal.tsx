@@ -91,6 +91,17 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
     return `${formatTime(startTime)} - ${formatTime(endTime)}`
   }
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return dateString
+    
+    // Parse date string as local date to avoid timezone issues
+    // If dateString is "2025-08-03", we want it to stay August 3rd regardless of timezone
+    const [year, month, day] = dateString.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day) // month is 0-indexed
+    
+    return format(localDate, "PPP")
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -134,7 +145,7 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-500" />
-                    <span>{format(new Date(ride.travelDate), "PPP")}</span>
+                    <span>{formatDate(ride.travelDate)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-500" />

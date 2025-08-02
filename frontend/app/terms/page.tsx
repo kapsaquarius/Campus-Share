@@ -36,7 +36,7 @@ export default function TermsPage() {
             <li>Respect other users and maintain appropriate conduct</li>
             <li>Not engage in fraudulent or illegal activities</li>
             <li>Report any safety concerns or inappropriate behavior</li>
-            <li>Meet your commitments for rides, subleases, and roommate arrangements</li>
+            <li>Meet your commitments for rides</li>
           </ul>
         </section>
 

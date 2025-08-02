@@ -103,26 +103,6 @@ def create_indexes():
         except OperationFailure as e:
             print(f"Warning: Could not create ride_interests indexes: {e}")
         
-
-        # Roommate requests collection indexes
-        roommate_requests = db.roommate_requests
-        try:
-            roommate_requests.create_index([("userId", ASCENDING)])
-            roommate_requests.create_index([("status", ASCENDING)])
-            roommate_requests.create_index([("createdAt", DESCENDING)])
-        except OperationFailure as e:
-            print(f"Warning: Could not create roommate_requests indexes: {e}")
-        
-        # Reviews collection indexes
-        reviews = db.reviews
-        try:
-            reviews.create_index([("reviewerId", ASCENDING)])
-            reviews.create_index([("reviewedUserId", ASCENDING)])
-            reviews.create_index([("rideId", ASCENDING)])
-            reviews.create_index([("createdAt", DESCENDING)])
-        except OperationFailure as e:
-            print(f"Warning: Could not create reviews indexes: {e}")
-        
         # Notifications collection indexes
         notifications = db.notifications
         try:
