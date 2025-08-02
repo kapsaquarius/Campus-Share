@@ -12,13 +12,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Car, User, LogOut, Plus, Heart } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Bell, Car, User, LogOut, Plus, Heart, Search } from "lucide-react"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Header() {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
   const router = useRouter()
+  const pathname = usePathname()
+
+  const getNavLinkClassName = (href: string) => {
+    const isActive = pathname === href
+    return `flex items-center space-x-1.5 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+      isActive
+        ? "text-blue-600 bg-blue-50"
+        : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+    }`
+  }
 
   const handleLogout = () => {
     logout()
@@ -27,16 +37,57 @@ export function Header() {
 
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-                  <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CS</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">CampusShare</span>
-          </Link>
+      <div className="container mx-auto px-4">
+        <div className="flex items-center h-16">
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">CS</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">CampusShare</span>
+            </Link>
+          </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex-1 flex items-center justify-center">
+            {user && (
+              <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
+                <Link
+                  href="/rides"
+                  className={getNavLinkClassName("/rides")}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span className="whitespace-nowrap">Find Rides</span>
+                </Link>
+                
+                <Link
+                  href="/rides/create"
+                  className={getNavLinkClassName("/rides/create")}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="whitespace-nowrap">Create Ride</span>
+                </Link>
+                
+                <Link
+                  href="/rides/my-rides"
+                  className={getNavLinkClassName("/rides/my-rides")}
+                >
+                  <Car className="w-3.5 h-3.5" />
+                  <span className="whitespace-nowrap">My Rides</span>
+                </Link>
+                
+                <Link
+                  href="/rides/my-interested"
+                  className={getNavLinkClassName("/rides/my-interested")}
+                >
+                  <Heart className="w-3.5 h-3.5" />
+                  <span className="whitespace-nowrap hidden sm:inline">My Interested Rides</span>
+                  <span className="whitespace-nowrap sm:hidden">Interested</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-shrink-0 flex items-center space-x-4">
             {user ? (
               <>
                 <Link href="/notifications" className="relative">
@@ -65,24 +116,6 @@ export function Header() {
                       <Link href="/profile" className="flex items-center space-x-2">
                         <User className="w-4 h-4" />
                         <span>Profile</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/rides/create" className="flex items-center space-x-2">
-                        <Plus className="w-4 h-4" />
-                        <span>Create Ride</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/rides/my-rides" className="flex items-center space-x-2">
-                        <Car className="w-4 h-4" />
-                        <span>My Rides</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/rides/my-interested" className="flex items-center space-x-2">
-                        <Heart className="w-4 h-4" />
-                        <span>My Interested Rides</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

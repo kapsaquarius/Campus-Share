@@ -15,7 +15,7 @@ export function Footer() {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600">
-          <p>&copy; 2024 CampusShare. All rights reserved.</p>
+          <p>&copy; 2025 CampusShare. All rights reserved.</p>
         </div>
       </div>
     </footer>
