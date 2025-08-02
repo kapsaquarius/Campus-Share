@@ -127,7 +127,6 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
         
         {ride && !isLoading && (
           <div className="space-y-6">
-            {/* Route Information */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -168,7 +167,6 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
               </CardContent>
             </Card>
 
-            {/* Driver Information */}
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-4">Driver Information</h3>
@@ -177,7 +175,6 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
                     <h4 className="font-medium">{ride.driver?.name || "Unknown Driver"}</h4>
                   </div>
                   
-                  {/* Contact Information */}
                   <div className="space-y-2">
                     {ride.driver?.phoneNumber && (
                       <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200">
@@ -207,7 +204,6 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
               </CardContent>
             </Card>
 
-            {/* Ride Status */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

@@ -46,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Check for stored token on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
@@ -78,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user)
         setToken(token)
         
-        // Store in localStorage
+
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
         
@@ -106,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user)
         setToken(token)
         
-        // Store in localStorage
+
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
       }
@@ -147,7 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updatedUser = response.data.user
         setUser(updatedUser)
         
-        // Update stored user data
         localStorage.setItem('user', JSON.stringify(updatedUser))
       }
     } catch (error) {

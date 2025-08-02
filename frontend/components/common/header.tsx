@@ -23,26 +23,22 @@ export function Header() {
   const handleLogout = () => {
     logout()
     router.push("/")
-    // Optional: Show a toast notification
   }
 
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+                  <Link href="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">CS</span>
             </div>
             <span className="text-xl font-bold text-gray-900">CampusShare</span>
           </Link>
 
-          {/* User Actions */}
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                {/* Notifications */}
                 <Link href="/notifications" className="relative">
                   <Button variant="ghost" size="sm" className="relative">
                     <Bell className="w-5 h-5" />
@@ -57,7 +53,6 @@ export function Header() {
                   </Button>
                 </Link>
 
-                {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center space-x-2">

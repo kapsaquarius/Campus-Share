@@ -9,7 +9,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import config
 
-# Global database connection
 db = None
 
 def init_db():
@@ -47,7 +46,6 @@ def format_object_id(obj):
     if obj and '_id' in obj:
         obj['_id'] = str(obj['_id'])
     
-    # Also handle userId field if it exists
     if obj and 'userId' in obj:
         obj['userId'] = str(obj['userId'])
     

@@ -12,21 +12,18 @@ export default function HomePage() {
   const { user } = useAuth()
   const router = useRouter()
 
-  // Redirect authenticated users to rides page
   useEffect(() => {
     if (user) {
       router.push("/rides")
     }
   }, [user, router])
 
-  // Don't render content if user is authenticated (will redirect)
   if (user) {
     return null
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Hero Section */}
       <section className="relative py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
@@ -40,7 +37,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Your Campus Connection Platform</h2>
@@ -48,7 +44,6 @@ export default function HomePage() {
             CampusShare makes it easy to connect with fellow students, share rides, and build your campus community.
           </p>
           
-          {/* Main Ride Sharing Hero */}
           <div className="text-center mb-16">
             <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
               <Car className="w-12 h-12 text-blue-600" />
@@ -58,7 +53,6 @@ export default function HomePage() {
               Find rides or offer your car to fellow students. Save money, reduce carbon footprint, and make friends.
             </p>
             
-            {/* Feature Cards */}
             <div className="grid md:grid-cols-3 gap-8">
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-4">
@@ -104,7 +98,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Additional Features */}
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -193,7 +186,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-16 px-4 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to Get Started?</h2>

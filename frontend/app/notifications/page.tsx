@@ -64,7 +64,6 @@ export default function NotificationsPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Unread Notifications */}
               {unreadNotifications.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Notifications ({unreadNotifications.length})</h2>
@@ -109,13 +108,11 @@ export default function NotificationsPage() {
                 </div>
               )}
 
-              {/* Read notifications are hidden - only showing unread notifications */}
             </div>
           )}
         </div>
       </div>
 
-      {/* Ride Details Modal */}
       {selectedRideId && (
         <RideDetailsModal
           isOpen={!!selectedRideId}
