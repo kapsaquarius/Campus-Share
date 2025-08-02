@@ -362,7 +362,8 @@ def get_my_interested_rides():
                     'seatsRemaining': '$ride.seatsRemaining',
                     'suggestedContribution': '$ride.suggestedContribution',
                     'status': '$ride.status',
-                    'createdAt': '$ride.createdAt'
+                    'createdAt': '$ride.createdAt',
+                    'additionalDetails': '$ride.additionalDetails'
                 },
                 'driver': {
                     'name': '$driver.name',

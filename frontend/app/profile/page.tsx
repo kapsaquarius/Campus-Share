@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ProtectedRoute } from "@/components/common/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
@@ -25,8 +25,47 @@ export default function ProfilePage() {
     phoneNumber: currentUser?.phoneNumber || "",
     whatsappNumber: currentUser?.whatsappNumber || "",
   })
+
+  // Update form data when user data changes (after login or profile update)
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        phoneNumber: currentUser.phoneNumber || "",
+        whatsappNumber: currentUser.whatsappNumber || "",
+      })
+    }
+  }, [currentUser])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
+
+  // Real-time validation function
+  const validateField = (fieldName: string, value: string) => {
+    let error = ""
+    
+    switch (fieldName) {
+      case "phoneNumber":
+        if (value) {
+          const phoneValidation = validatePhoneNumber(value)
+          if (!phoneValidation.isValid) {
+            error = phoneValidation.error || "Invalid phone number"
+          }
+        }
+        break
+      case "whatsappNumber":
+        if (value) {
+          const whatsappValidation = validatePhoneNumber(value)
+          if (!whatsappValidation.isValid) {
+            error = whatsappValidation.error || "Invalid WhatsApp number"
+          }
+        }
+        break
+    }
+    
+    setValidationErrors(prev => ({
+      ...prev,
+      [fieldName]: error
+    }))
+  }
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
@@ -51,12 +90,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors before saving.",
-        variant: "destructive",
-      })
-      return
+      return // Button will be disabled, so this won't be called
     }
 
     setIsLoading(true)
@@ -149,7 +183,7 @@ export default function ProfilePage() {
                       <X className="w-4 h-4 mr-2" />
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                    <Button size="sm" onClick={handleSave} disabled={isLoading || Object.keys(validationErrors).length > 0}>
                       {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -235,10 +269,7 @@ export default function ProfilePage() {
                       value={formData.phoneNumber}
                       onChange={(value) => {
                         setFormData((prev) => ({ ...prev, phoneNumber: value }))
-                        // Clear validation error when user starts typing
-                        if (validationErrors.phoneNumber) {
-                          setValidationErrors(prev => ({ ...prev, phoneNumber: "" }))
-                        }
+                        validateField("phoneNumber", value)
                       }}
                       placeholder="Enter phone number"
                       error={validationErrors.phoneNumber}
@@ -251,10 +282,7 @@ export default function ProfilePage() {
                       value={formData.whatsappNumber}
                       onChange={(value) => {
                         setFormData((prev) => ({ ...prev, whatsappNumber: value }))
-                        // Clear validation error when user starts typing
-                        if (validationErrors.whatsappNumber) {
-                          setValidationErrors(prev => ({ ...prev, whatsappNumber: "" }))
-                        }
+                        validateField("whatsappNumber", value)
                       }}
                       placeholder="Enter WhatsApp number"
                       error={validationErrors.whatsappNumber}

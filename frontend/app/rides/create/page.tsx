@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -43,6 +44,7 @@ interface CreateRideForm {
   availableSeats: number
   suggestedContribution: number
   currency: string
+  additionalDetails: string
 }
 
 export default function CreateRidePage() {
@@ -62,6 +64,7 @@ export default function CreateRidePage() {
     availableSeats: 1,
     suggestedContribution: 0,
     currency: "USD",
+    additionalDetails: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -253,6 +256,7 @@ export default function CreateRidePage() {
         availableSeats: formData.availableSeats,
         suggestedContribution: formData.suggestedContribution,
         currency: "USD",
+        additionalDetails: formData.additionalDetails,
       }
 
       const response = await apiService.createRide(token, rideData)
@@ -571,6 +575,22 @@ export default function CreateRidePage() {
                     <p className="text-sm text-red-500">{errors.suggestedContribution}</p>
                   )}
                 </div>
+
+                {/* Additional Details */}
+                <div className="space-y-2">
+                  <Label htmlFor="additionalDetails">Additional Details (Optional)</Label>
+                  <Textarea
+                    id="additionalDetails"
+                    value={formData.additionalDetails}
+                    onChange={(e) => handleInputChange("additionalDetails", e.target.value)}
+                    placeholder="Any additional information about your ride (meeting point, preferences, etc.)"
+                    className="min-h-[80px]"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-gray-500">
+                    {formData.additionalDetails.length}/500 characters
+                  </p>
+                </div>
               </div>
 
               {/* Preview Section */}
@@ -603,6 +623,12 @@ export default function CreateRidePage() {
                       : "Free"
                     }
                   </div>
+                  {formData.additionalDetails && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Additional Details:</p>
+                      <p className="text-sm">{formData.additionalDetails}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               {!isFormValid() && !isLoading && (

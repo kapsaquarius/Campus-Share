@@ -69,6 +69,7 @@ interface Ride {
   }
   interestCount: number
   isHotRide: boolean
+  additionalDetails?: string
 }
 
 export default function RidesPage() {
@@ -708,6 +709,13 @@ export default function RidesPage() {
                           </div>
                         </div>
                       </div>
+
+                      {ride.additionalDetails && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                          <p className="text-xs text-blue-600 font-medium mb-1">Additional Details:</p>
+                          <p className="text-sm text-blue-800">{ride.additionalDetails}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2">

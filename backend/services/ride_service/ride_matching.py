@@ -332,6 +332,7 @@ def get_ride_with_details(ride_id):
         'status': ride_data['status'],
         'createdAt': ride_data['createdAt'],
         'updatedAt': ride_data['updatedAt'],
+        'additionalDetails': ride_data.get('additionalDetails', ''),
         'driver': {
             'name': ride_data['driver']['name'],
             'phoneNumber': ride_data['driver'].get('phone', ''),

@@ -34,6 +34,7 @@ interface Ride {
   status: string;
   createdAt: string;
   interestCount: number;
+  additionalDetails?: string;
 }
 
 export default function MyRidesPage() {
@@ -181,7 +182,7 @@ export default function MyRidesPage() {
       departureEndTime: ride.departureEndTime,
       availableSeats: ride.availableSeats,
       suggestedContribution: ride.suggestedContribution,
-      additionalDetails: ''
+      additionalDetails: ride.additionalDetails || ''
     });
     setValidSelections({ startingFrom: true, goingTo: true });
     setEditErrors({});
@@ -638,6 +639,13 @@ export default function MyRidesPage() {
                     </span>
                   </div>
                 </div>
+                
+                {ride.additionalDetails && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Additional Details:</p>
+                    <p className="text-sm text-blue-800">{ride.additionalDetails}</p>
+                  </div>
+                )}
                 
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex items-center justify-between">

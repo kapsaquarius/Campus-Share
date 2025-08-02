@@ -209,7 +209,7 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Username <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="username"
@@ -229,7 +229,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="email"
@@ -247,7 +247,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="name"
@@ -285,7 +285,7 @@ export default function RegisterPage() {
             />
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -317,7 +317,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -363,7 +363,7 @@ export default function RegisterPage() {
                 and{" "}
                 <Link href="/privacy" className="text-blue-600 hover:underline">
                   Privacy Policy
-                </Link>
+                </Link> <span className="text-red-500">*</span>
               </Label>
             </div>
             {errors.agreeToTerms && <p className="text-sm text-red-500">{errors.agreeToTerms}</p>}
