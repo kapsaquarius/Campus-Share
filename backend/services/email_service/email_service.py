@@ -52,7 +52,6 @@ class EmailService:
                 # Debug logging - show credentials being used
                 print(f"🔐 SMTP Login Attempt:")
                 print(f"   Username: '{config.SMTP_USERNAME}'")
-                print(f"   App Password: '{config.SMTP_APP_PASSWORD[:4]}***{config.SMTP_APP_PASSWORD[-4:]}' (length: {len(config.SMTP_APP_PASSWORD)})")
                 
                 server.login(config.SMTP_USERNAME, config.SMTP_APP_PASSWORD)
                 server.sendmail(config.FROM_EMAIL, to_email, message.as_string())
