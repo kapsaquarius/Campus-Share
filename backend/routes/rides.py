@@ -126,6 +126,7 @@ def rides():
                 'availableSeats': data['availableSeats'],
                 'seatsRemaining': data['availableSeats'],
                 'suggestedContribution': data.get('suggestedContribution', 0),
+                'additionalDetails': data.get('additionalDetails', ''),
                 'status': 'active',
                 'createdAt': datetime.utcnow(),
                 'updatedAt': datetime.utcnow()
