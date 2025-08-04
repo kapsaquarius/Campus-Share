@@ -273,6 +273,7 @@ export default function CreateRidePage() {
       toast({
         title: "Ride posted successfully!",
         description: "Your ride has been created and is now visible to other students.",
+        duration: 4000,
       })
 
       router.push("/rides")
@@ -281,6 +282,7 @@ export default function CreateRidePage() {
         title: "An error occurred",
         description: "Failed to create ride. Please try again.",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setIsLoading(false)

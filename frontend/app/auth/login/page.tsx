@@ -55,11 +55,13 @@ export default function LoginPage() {
           title: "Login failed",
           description: result.error,
           variant: "destructive",
+          duration: 6000,
         })
       } else {
         toast({
           title: "Welcome back!",
           description: "You have been successfully logged in.",
+          duration: 3000,
         })
         router.push("/rides")
       }
@@ -68,6 +70,7 @@ export default function LoginPage() {
         title: "Login failed",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setIsLoading(false)

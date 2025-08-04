@@ -123,12 +123,14 @@ export default function ProfilePage() {
       toast({
         title: "Profile updated successfully!",
         description: "Your changes have been saved.",
+        duration: 4000,
       })
     } catch (error: any) {
       toast({
         title: "Failed to update profile",
         description: "Please try again or contact support.",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setIsLoading(false)

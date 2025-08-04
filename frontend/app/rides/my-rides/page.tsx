@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { InterestedUsersModal } from '@/components/InterestedUsersModal';
 import { ProtectedRoute } from '@/components/common/protected-route';
 import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/components/ui/use-toast';
 import { apiService } from '@/lib/api';
 import { useLocation } from '@/contexts/location-context';
 import { TimeInput } from '@/components/ui/time-input';
@@ -54,7 +54,8 @@ export default function MyRidesPage() {
   });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingRideId, setDeletingRideId] = useState<string | null>(null);
   const [interestedUsersModal, setInterestedUsersModal] = useState<{
     isOpen: boolean
     rideId: string
@@ -69,6 +70,7 @@ export default function MyRidesPage() {
     rideInfo: { startingFrom: '', goingTo: '', travelDate: '' }
   });
   const { searchLocations } = useLocation();
+  const { toast } = useToast();
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [showStartSuggestions, setShowStartSuggestions] = useState(false);
   const [showEndSuggestions, setShowEndSuggestions] = useState(false);
@@ -91,6 +93,44 @@ export default function MyRidesPage() {
     }
   }, [token]);
 
+  // Real-time validation for edit form
+  useEffect(() => {
+    if (!editingRide) return;
+    
+    const newErrors: Record<string, string> = {};
+
+    // Time validation
+    if (editFormData.departureStartTime && editFormData.departureEndTime) {
+      if (editFormData.departureStartTime > editFormData.departureEndTime) {
+        newErrors.departureEndTime = "Latest start time cannot be earlier than earliest start time";
+      }
+    }
+
+    // Location validation
+    if (editFormData.startingFrom && editFormData.goingTo) {
+      if (editFormData.startingFrom === editFormData.goingTo) {
+        newErrors.goingTo = "Destination must be different from starting location";
+      }
+    }
+
+    // Travel date validation
+    if (editFormData.travelDate && editFormData.travelDate < getTodayStart()) {
+      newErrors.travelDate = "Travel date cannot be in the past";
+    }
+
+    // Seats validation
+    if (editFormData.availableSeats && (editFormData.availableSeats < 1 || editFormData.availableSeats > 8)) {
+      newErrors.availableSeats = "Available seats must be between 1 and 8";
+    }
+
+    // Contribution validation
+    if (editFormData.suggestedContribution !== undefined && (editFormData.suggestedContribution < 0 || editFormData.suggestedContribution > 1000)) {
+      newErrors.suggestedContribution = "Contribution must be between $0 and $1000";
+    }
+
+    setEditErrors(newErrors);
+  }, [editFormData, editingRide]);
+
   const fetchMyRides = async (isInitialLoad = false) => {
     if (isInitialLoad) {
       setLoading(true);
@@ -110,10 +150,20 @@ export default function MyRidesPage() {
         const data = await response.json();
         setRides(data.rides || []);
       } else {
-        toast.error('Failed to fetch your rides');
+        toast({
+          title: "Error",
+          description: "Failed to fetch your rides",
+          variant: "destructive",
+          duration: 6000,
+        });
       }
     } catch (error) {
-      toast.error('Error fetching rides');
+              toast({
+          title: "Error",
+          description: "Error fetching rides",
+          variant: "destructive",
+          duration: 6000,
+        });
     } finally {
       if (isInitialLoad) {
         setLoading(false);
@@ -172,6 +222,26 @@ export default function MyRidesPage() {
     return Object.keys(newErrors).length === 0
   }
 
+  // Check if edit form is valid for real-time validation
+  const isEditFormValid = () => {
+    return (
+      editFormData.startingFrom.trim() &&
+      editFormData.goingTo.trim() &&
+      editFormData.departureStartTime &&
+      editFormData.departureEndTime &&
+      editFormData.availableSeats > 0 &&
+      validSelections.startingFrom &&
+      validSelections.goingTo &&
+      editFormData.startingFrom !== editFormData.goingTo &&
+      editFormData.departureStartTime <= editFormData.departureEndTime &&
+      editFormData.availableSeats >= 1 &&
+      editFormData.availableSeats <= 8 &&
+      editFormData.suggestedContribution >= 0 &&
+      editFormData.suggestedContribution <= 1000 &&
+      editFormData.travelDate >= getTodayStart()
+    )
+  }
+
   const handleEditRide = (ride: Ride) => {
     setEditingRide(ride);
     setEditFormData({
@@ -226,7 +296,12 @@ export default function MyRidesPage() {
 
     // Additional check for valid location selections
     if (!validSelections.startingFrom || !validSelections.goingTo) {
-      toast.error('Please select valid locations from the dropdown suggestions');
+      toast({
+        title: "Error",
+        description: "Please select valid locations from the dropdown suggestions",
+        variant: "destructive",
+        duration: 6000,
+      });
       return;
     }
 
@@ -245,13 +320,22 @@ export default function MyRidesPage() {
       };
 
       await apiService.updateRide(token, editingRide._id, updateData);
-      toast.success('Ride updated successfully');
+      toast({
+        title: "Success",
+        description: "Ride updated successfully",
+        duration: 6000,
+      });
       setEditDialogOpen(false);
       setEditingRide(null);
       // Refresh the rides list to show updated data
       await fetchMyRides();
     } catch (error) {
-      toast.error('Failed to update ride');
+      toast({
+        title: "Error",
+        description: "Failed to update ride",
+        variant: "destructive",
+        duration: 6000,
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -260,13 +344,26 @@ export default function MyRidesPage() {
   const deleteRide = async (rideId: string) => {
     if (!token) return;
 
+    setDeletingRideId(rideId);
+
     try {
       await apiService.deleteRide(token, rideId);
-      toast.success('Ride deleted successfully');
+      toast({
+        title: "Success",
+        description: "Ride deleted successfully",
+        duration: 6000,
+      });
       // Refresh the rides list to show updated data
       await fetchMyRides();
     } catch (error) {
-      toast.error('Failed to delete ride');
+      toast({
+        title: "Error",
+        description: "Failed to delete ride",
+        variant: "destructive",
+        duration: 6000,
+      });
+    } finally {
+      setDeletingRideId(null);
     }
   };
 
@@ -569,13 +666,27 @@ export default function MyRidesPage() {
                             </div>
 
                             <div className="flex gap-2 pt-4">
-                              <Button onClick={updateRide} disabled={isUpdating} className="flex-1">
-                                {isUpdating ? "Updating..." : "Update Ride"}
+                              <Button onClick={updateRide} disabled={isUpdating || !isEditFormValid()} className="flex-1">
+                                {isUpdating ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                                    Updating ride...
+                                  </>
+                                ) : (
+                                  "Update Ride"
+                                )}
                               </Button>
                               <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="flex-1">
                                 Cancel
                               </Button>
                             </div>
+                            {!isEditFormValid() && !isUpdating && (
+                              <div className="mt-2 text-center">
+                                <p className="text-sm text-gray-600">
+                                  Please fill all required fields and fix any validation errors
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </DialogContent>
                       </Dialog>
@@ -586,8 +697,13 @@ export default function MyRidesPage() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
+                            disabled={deletingRideId === ride._id}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {deletingRideId === ride._id ? (
+                              <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -602,8 +718,16 @@ export default function MyRidesPage() {
                             <AlertDialogAction
                               onClick={() => deleteRide(ride._id)}
                               className="bg-red-600 hover:bg-red-700"
+                              disabled={deletingRideId === ride._id}
                             >
-                              Delete
+                              {deletingRideId === ride._id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                                  Deleting ride...
+                                </>
+                              ) : (
+                                "Delete"
+                              )}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

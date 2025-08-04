@@ -187,11 +187,12 @@ export default function RidesPage() {
     try {
       const response = await apiService.getRides(token)
       if (response.error) {
-        toast({
-          title: "Error",
-          description: response.error,
-          variant: "destructive",
-        })
+              toast({
+        title: "Error",
+        description: response.error,
+        variant: "destructive",
+        duration: 6000,
+      })
       } else if (response.data && typeof response.data === 'object' && response.data !== null && 'rides' in response.data) {
         setRides((response.data as any).rides || [])
       }
@@ -200,6 +201,7 @@ export default function RidesPage() {
         title: "Error",
         description: "Failed to load rides",
         variant: "destructive",
+        duration: 6000,
       })
     }
   }
@@ -286,6 +288,7 @@ export default function RidesPage() {
         title: "Invalid starting location",
         description: "Location cleared. Please select a valid location from the dropdown suggestions.",
         variant: "destructive",
+        duration: 5000,
       })
       return
     }
@@ -296,6 +299,7 @@ export default function RidesPage() {
         title: "Invalid destination",
         description: "Location cleared. Please select a valid location from the dropdown suggestions.", 
         variant: "destructive",
+        duration: 5000,
       })
       return
     }
@@ -305,6 +309,7 @@ export default function RidesPage() {
         title: "Authentication required",
         description: "Please log in to search for rides",
         variant: "destructive",
+        duration: 5000,
       })
       return
     }
@@ -332,6 +337,7 @@ export default function RidesPage() {
         title: "Validation Error",
         description: errors.join(", "),
         variant: "destructive",
+        duration: 5000,
       })
       return
     }
@@ -381,12 +387,14 @@ export default function RidesPage() {
       toast({
         title: "Search completed",
         description: `Found ${filteredRides.length} rides for your criteria.`,
+        duration: 3000,
       })
     } catch (error) {
       toast({
         title: "Search failed",
         description: "Failed to search for rides",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setIsSearching(false)
@@ -445,6 +453,7 @@ export default function RidesPage() {
         title: "Authentication required",
         description: "Please log in to express interest",
         variant: "destructive",
+        duration: 5000,
       })
       return
     }
@@ -458,6 +467,7 @@ export default function RidesPage() {
           title: "Failed to express interest",
           description: response.error,
           variant: "destructive",
+          duration: 6000,
         })
       } else {
         toast({
@@ -477,6 +487,7 @@ export default function RidesPage() {
         title: "Failed to express interest",
         description: "An error occurred while expressing interest",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setExpressingInterest(null)

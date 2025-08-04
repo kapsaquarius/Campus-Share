@@ -32,6 +32,7 @@ export default function ContactPage() {
       toast({
         title: "Message sent successfully!",
         description: "We'll get back to you within 24 hours.",
+        duration: 4000,
       })
       setFormData({
         name: "",

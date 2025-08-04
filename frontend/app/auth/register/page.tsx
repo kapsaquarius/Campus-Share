@@ -144,6 +144,7 @@ export default function RegisterPage() {
       toast({
         title: "Account created successfully!",
         description: "Welcome to CampusShare!",
+        duration: 4000,
       })
       router.push("/rides")
     } catch (error) {
@@ -151,6 +152,7 @@ export default function RegisterPage() {
         title: "Registration failed",
         description: "Please try again or contact support if the problem persists.",
         variant: "destructive",
+        duration: 6000,
       })
     } finally {
       setIsLoading(false)
