@@ -636,7 +636,6 @@ export default function RidesPage() {
 
               <div className="space-y-2">
                 <Label>Preferred Earliest and Latest Start Times</Label>
-                <p className="text-xs text-gray-500">Optional: Specify both start and end times if you want to filter by time range</p>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <TimeInput

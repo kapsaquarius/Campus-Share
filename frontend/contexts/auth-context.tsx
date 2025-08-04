@@ -140,7 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const updateProfile = async (profileData: ProfileData) => {
-    setLoading(true)
     try {
       if (!token) {
         throw new Error('No authentication token')
@@ -165,8 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Profile update error:', error)
       throw error
-    } finally {
-      setLoading(false)
     }
   }
 

@@ -29,11 +29,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Show loading state while auth is being checked
   if (loading) {
     console.log('ProtectedRoute: Showing loading state')
+    // Check if there's stored auth data to show appropriate message
+    const hasStoredAuth = typeof window !== 'undefined' && 
+                         localStorage.getItem('token') && 
+                         localStorage.getItem('user')
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-          <p className="mt-2 text-base text-gray-600">Loading your dashboard...</p>
+          <p className="mt-2 text-base text-gray-600">
+            {hasStoredAuth ? "Loading your dashboard..." : "Checking authentication..."}
+          </p>
         </div>
       </div>
     )
