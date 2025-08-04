@@ -4,6 +4,7 @@ import type React from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -31,8 +32,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+          <p className="mt-2 text-base text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     )
@@ -42,12 +43,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (!user) {
     console.log('ProtectedRoute: No user, showing redirect state')
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Redirecting to login...</p>
-        </div>
+          <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+        <p className="mt-2 text-base text-gray-600">Redirecting to login...</p>
       </div>
+    </div>
     )
   }
 

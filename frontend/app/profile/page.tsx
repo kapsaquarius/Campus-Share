@@ -207,8 +207,8 @@ export default function ProfilePage() {
                     <Button size="sm" onClick={handleSave} disabled={isLoading || Object.keys(validationErrors).length > 0}>
                       {isLoading ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
+                          <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                          Updating profile...
                         </>
                       ) : (
                         <>

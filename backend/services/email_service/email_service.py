@@ -1,11 +1,14 @@
 import smtplib
 import ssl
+import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from jinja2 import Template
 import traceback
+from dotenv import load_dotenv
 
-from config import config
+# Load environment variables
+load_dotenv()
 
 class EmailService:
     """Gmail SMTP email service for CampusShare notifications"""
@@ -16,7 +19,8 @@ class EmailService:
     def send_email(self, to_email: str, to_name: str, subject: str, html_content: str, text_content: str = None) -> bool:
         """Send email using Gmail SMTP"""
         
-        if not config.EMAIL_ENABLED:
+        email_enabled = os.getenv('EMAIL_ENABLED').lower() == 'true'
+        if not email_enabled:
             print(f"Email disabled - would send: {subject} to {to_email}")
             return True
         
@@ -24,7 +28,10 @@ class EmailService:
     
     def _send_via_smtp(self, to_email: str, to_name: str, subject: str, html_content: str, text_content: str = None) -> bool:
         """Send email via Gmail SMTP"""
-        if not config.SMTP_USERNAME or not config.SMTP_APP_PASSWORD:
+        smtp_username = os.getenv('SMTP_USERNAME')
+        smtp_password = os.getenv('SMTP_APP_PASSWORD')
+        
+        if not smtp_username or not smtp_password:
             print("Gmail SMTP credentials not configured")
             return False
         
@@ -32,7 +39,9 @@ class EmailService:
             # Create message
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
-            message["From"] = f"{config.FROM_NAME} <{config.FROM_EMAIL}>"
+            from_name = os.getenv('FROM_NAME')
+            from_email = os.getenv('FROM_EMAIL')
+            message["From"] = f"{from_name} <{from_email}>"
             message["To"] = f"{to_name} <{to_email}>"
             
             # Add text and HTML parts
@@ -45,16 +54,20 @@ class EmailService:
             
             # Send via Gmail SMTP
             context = ssl.create_default_context()
-            with smtplib.SMTP(config.SMTP_SERVER, config.SMTP_PORT) as server:
-                if config.SMTP_USE_TLS:
+            smtp_server = os.getenv('SMTP_SERVER')
+            smtp_port = int(os.getenv('SMTP_PORT'))
+            smtp_use_tls = os.getenv('SMTP_USE_TLS').lower() == 'true'
+            
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                if smtp_use_tls:
                     server.starttls(context=context)
                 
                 # Debug logging - show credentials being used
                 print(f"🔐 SMTP Login Attempt:")
-                print(f"   Username: '{config.SMTP_USERNAME}'")
+                print(f"   Username: '{smtp_username}'")
                 
-                server.login(config.SMTP_USERNAME, config.SMTP_APP_PASSWORD)
-                server.sendmail(config.FROM_EMAIL, to_email, message.as_string())
+                server.login(smtp_username, smtp_password)
+                server.sendmail(from_email, to_email, message.as_string())
             
             print(f"Gmail SMTP email sent to {to_email}")
             return True

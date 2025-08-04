@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { InterestedUsersModal } from '@/components/InterestedUsersModal';
 import { ProtectedRoute } from '@/components/common/protected-route';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/lib/api';
 import { useLocation } from '@/contexts/location-context';
@@ -303,7 +303,10 @@ export default function MyRidesPage() {
       {loading ? (
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <span className="text-base text-gray-600">Loading your rides...</span>
+            </div>
           </div>
         </div>
       ) : (
@@ -315,9 +318,9 @@ export default function MyRidesPage() {
             <p className="text-gray-600">Manage your posted rides and track interest</p>
           </div>
           {isRefreshing && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              Updating...
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+              <span className="text-sm text-gray-600">Updating ride list...</span>
             </div>
           )}
         </div>

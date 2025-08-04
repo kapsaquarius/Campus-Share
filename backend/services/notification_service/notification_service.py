@@ -1,8 +1,12 @@
 from datetime import datetime
 from bson import ObjectId
+import os
+from dotenv import load_dotenv
 from scripts.database import get_collection
 from services.email_service.email_service import email_service, EmailTemplates
-from config import config
+
+# Load environment variables
+load_dotenv()
 
 def create_notification(user_id, type, title, message, related_id=None):
     """Create a new notification"""
@@ -53,10 +57,11 @@ def create_ride_interest_notification(ride_id, interested_user_id, ride_details)
                     'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
                 }
                 
+                frontend_url = os.getenv('FRONTEND_URL')
                 subject, html_content, text_content = EmailTemplates.ride_interest_notification(
                     interested_user['name'], 
                     ride_email_details,
-                    config.FRONTEND_URL
+                    frontend_url
                 )
                 email_service.send_email(
                     to_email=ride_owner['email'],
@@ -98,10 +103,11 @@ def create_ride_interest_removed_notification(ride_id, removed_user_id, ride_det
                     'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
                 }
                 
+                frontend_url = os.getenv('FRONTEND_URL')
                 subject, html_content, text_content = EmailTemplates.interest_removed_notification(
                     removed_user['name'], 
                     ride_email_details,
-                    config.FRONTEND_URL
+                    frontend_url
                 )
                 email_service.send_email(
                     to_email=ride_owner['email'],
@@ -150,11 +156,12 @@ def create_ride_update_notification(ride_id, ride_details):
                     # For ride updates, we need to determine which fields were updated
                     updated_fields = ['ride details']  # Generic for now - could be more specific
                     
+                    frontend_url = os.getenv('FRONTEND_URL')
                     subject, html_content, text_content = EmailTemplates.ride_updated_notification(
                         interested_user['name'], 
                         ride_email_details,
                         updated_fields,
-                        config.FRONTEND_URL
+                        frontend_url
                     )
                     email_service.send_email(
                         to_email=interested_user['email'],
@@ -200,10 +207,11 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
                         'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
                     }
                     
+                    frontend_url = os.getenv('FRONTEND_URL')
                     subject, html_content, text_content = EmailTemplates.ride_cancelled_notification(
                         interested_user['name'], 
                         ride_email_details,
-                        config.FRONTEND_URL
+                        frontend_url
                     )
                     email_service.send_email(
                         to_email=interested_user['email'],

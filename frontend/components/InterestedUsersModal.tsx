@@ -154,8 +154,8 @@ export function InterestedUsersModal({
         <div className="mt-4">
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading interested users...</span>
+              <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+              <span className="ml-2 text-base text-gray-600">Loading interested users...</span>
             </div>
           )}
 

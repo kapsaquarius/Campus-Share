@@ -161,8 +161,8 @@ export default function MyInterestedRidesPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-gray-600">Loading your interested rides...</span>
+            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+            <span className="text-base text-gray-600">Loading your interested rides...</span>
           </div>
         </div>
       ) : error ? (
@@ -318,8 +318,8 @@ export default function MyInterestedRidesPage() {
                         >
                           {removingInterest === item.ride._id ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Removing...
+                              <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                              Removing interest...
                             </>
                           ) : (
                             <>

@@ -645,8 +645,8 @@ export default function CreateRidePage() {
                 <Button type="submit" className="flex-1" disabled={isLoading || !isFormValid()}>
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Ride...
+                      <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                      Publishing your ride...
                     </>
                   ) : (
                     "Post Ride"

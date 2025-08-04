@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ContactPage() {
@@ -210,7 +210,10 @@ export default function ContactPage() {
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
-                      "Sending..."
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                        Sending your message...
+                      </>
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />

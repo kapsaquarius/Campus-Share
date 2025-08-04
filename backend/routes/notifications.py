@@ -98,5 +98,3 @@ def mark_all_as_read():
         
     except Exception as e:
         return jsonify({'error': f'Failed to mark notifications as read: {str(e)}'}), 400
-
-# Delete notification endpoint removed - notifications are hidden when read 

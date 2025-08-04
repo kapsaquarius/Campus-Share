@@ -375,8 +375,8 @@ export default function RegisterPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
+                  <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                  Creating your account...
                 </>
               ) : (
                 "Create Account"

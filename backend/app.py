@@ -6,29 +6,27 @@ from dotenv import load_dotenv
 from bson import ObjectId
 import json
 from decimal import Decimal
-
-from scripts.database import init_db, get_db
 from routes.auth import auth_bp, verify_token
 from routes.rides import rides_bp
 from routes.notifications import notifications_bp
 
 from routes.locations import locations_bp
-from config import config
 
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = config.SECRET_KEY
-app.config['MONGODB_URI'] = config.MONGODB_URI
-app.config['DEBUG'] = config.DEBUG
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['MONGODB_URI'] = os.getenv('MONGODB_URI')
+
+# Parse CORS origins
+cors_origins = os.getenv('CORS_ORIGINS').split(',')
 
 CORS(app, 
-     origins=config.CORS_ORIGINS, 
+     origins=cors_origins, 
      supports_credentials=True,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization'])
 
-init_db()
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(rides_bp, url_prefix='/api/rides')
@@ -43,7 +41,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         if isinstance(obj, Decimal):
             return float(obj)
         if isinstance(obj, datetime):
-            return obj.isoformat() + 'Z'  # Add Z suffix for UTC timestamps
+            return obj.isoformat() + 'Z'
         if isinstance(obj, date):
             return obj.isoformat()
         return super().default(obj)
@@ -68,4 +66,4 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=config.DEBUG, host='0.0.0.0', port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=5000) 

@@ -130,8 +130,8 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isLoading || !formData.username || !formData.password}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing In...
+                  <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                  Signing you in...
                 </>
               ) : (
                 "Sign In"

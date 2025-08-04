@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useNotifications } from "@/contexts/notification-context"
 import { apiService } from "@/lib/api"
 import { TimeInput } from "@/components/ui/time-input"
-import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare, X } from "lucide-react"
+import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare, X, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 
@@ -91,6 +91,7 @@ export default function RidesPage() {
   })
   const [rides, setRides] = useState<Ride[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [expressingInterest, setExpressingInterest] = useState<string | null>(null)
   const { toast } = useToast()
 
   const { popularLocations, searchLocations } = useLocation()
@@ -120,6 +121,17 @@ export default function RidesPage() {
   const validateTimes = (startTime: string, endTime: string) => {
     const errors: Record<string, string> = {}
     
+    // Check if only one time is provided (both or neither required)
+    if ((startTime && !endTime) || (!startTime && endTime)) {
+      if (startTime && !endTime) {
+        errors.preferredTimeEnd = "Please provide end time when start time is specified"
+      }
+      if (!startTime && endTime) {
+        errors.preferredTimeStart = "Please provide start time when end time is specified"
+      }
+    }
+    
+    // Check if start time is later than end time (only when both are provided)
     if (startTime && endTime) {
       const startMinutes = timeToMinutes(startTime);
       const endMinutes = timeToMinutes(endTime);
@@ -381,6 +393,52 @@ export default function RidesPage() {
     }
   }
 
+  const refreshSearchResults = async () => {
+    if (!token || !searchForm.travelDate || !searchForm.startingFrom || !searchForm.goingTo) return
+    
+    try {
+      // Build search parameters from form data (same as handleSearch but without loading state)
+      const searchParams = new URLSearchParams()
+      
+      if (searchForm.travelDate) {
+        searchParams.set('travelDate', format(searchForm.travelDate, 'yyyy-MM-dd'))
+      }
+      if (searchForm.startingFrom) {
+        searchParams.set('startingFrom', searchForm.startingFrom)
+      }
+      if (searchForm.goingTo) {
+        searchParams.set('goingTo', searchForm.goingTo)
+      }
+      if (searchForm.preferredTimeStart) {
+        searchParams.set('preferredTimeStart', searchForm.preferredTimeStart)
+      }
+      if (searchForm.preferredTimeEnd) {
+        searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
+      }
+
+      const response = await fetch(`http://localhost:5000/api/rides/search?${searchParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Filter out user's own rides from search results
+        const filteredRides = (data.rides || []).filter((ride: any) => {
+          return String(ride.userId) !== String(user?._id)
+        })
+        
+        setRides(filteredRides)
+      }
+    } catch (error) {
+      // Silently fail - don't show error for background refresh
+      console.error('Failed to refresh search results:', error)
+    }
+  }
+
   const handleExpressInterest = async (rideId: string) => {
     if (!token) {
       toast({
@@ -391,8 +449,9 @@ export default function RidesPage() {
       return
     }
 
+    setExpressingInterest(rideId)
     try {
-            const response = await apiService.expressInterest(token, rideId)
+      const response = await apiService.expressInterest(token, rideId)
 
       if (response && response.error) {
         toast({
@@ -410,10 +469,8 @@ export default function RidesPage() {
         // Refresh notifications to show any new notifications
         await refreshNotifications()
         
-        // Refresh search results to remove the ride from the list
-        if (searchForm.travelDate && searchForm.startingFrom && searchForm.goingTo) {
-          await handleSearch()
-        }
+        // Refresh search results quietly without showing loading screen
+        await refreshSearchResults()
       }
     } catch (error) {
       toast({
@@ -421,6 +478,8 @@ export default function RidesPage() {
         description: "An error occurred while expressing interest",
         variant: "destructive",
       })
+    } finally {
+      setExpressingInterest(null)
     }
   }
 
@@ -577,24 +636,17 @@ export default function RidesPage() {
 
               <div className="space-y-2">
                 <Label>Preferred Earliest and Latest Start Times</Label>
+                <p className="text-xs text-gray-500">Optional: Specify both start and end times if you want to filter by time range</p>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <TimeInput
                       value={searchForm.preferredTimeStart}
                       onChange={(value) => {
                         setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))
-                        // Clear any existing error for this field
-                        if (timeErrors.preferredTimeStart) {
-                          setTimeErrors(prev => {
-                            const newErrors = { ...prev }
-                            delete newErrors.preferredTimeStart
-                            return newErrors
-                          })
-                        }
                         // Validate times when start time changes
                         setTimeout(() => validateTimes(value, searchForm.preferredTimeEnd), 0)
                       }}
-                      placeholder="Start time"
+                      placeholder="Earliest time"
                       className={timeErrors.preferredTimeStart ? 'border-red-500' : ''}
                       error={timeErrors.preferredTimeStart}
                     />
@@ -604,18 +656,10 @@ export default function RidesPage() {
                       value={searchForm.preferredTimeEnd}
                       onChange={(value) => {
                         setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))
-                        // Clear any existing error for this field
-                        if (timeErrors.preferredTimeEnd) {
-                          setTimeErrors(prev => {
-                            const newErrors = { ...prev }
-                            delete newErrors.preferredTimeEnd
-                            return newErrors
-                          })
-                        }
                         // Validate times when end time changes
                         setTimeout(() => validateTimes(searchForm.preferredTimeStart, value), 0)
                       }}
-                      placeholder="End time"
+                      placeholder="Latest time"
                       className={timeErrors.preferredTimeEnd ? 'border-red-500' : ''}
                       error={timeErrors.preferredTimeEnd}
                     />
@@ -629,30 +673,45 @@ export default function RidesPage() {
               className="w-full mt-4" 
               disabled={isSearching || !isFormValid()}
             >
-              {isSearching ? "Searching..." : "Search Rides"}
+              {isSearching ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Search Rides
+                </>
+              )}
             </Button>
             {!isFormValid() && !isSearching && (
               <div className="mt-2 text-center">
                 <p className="text-sm text-gray-600">
                   Please fill all required fields (*) to search for rides
                 </p>
-                {Object.keys(timeErrors).length > 0 && (
-                  <div className="text-sm text-red-500 mt-1">
-                    <p>Please fix time validation errors:</p>
-                    <ul className="text-xs mt-1">
-                      {Object.entries(timeErrors).map(([field, error]) => (
-                        <li key={field}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Loading State */}
+        {isSearching && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Searching for rides...</h3>
+                  <p className="text-sm text-gray-600">Finding the best matches for your trip</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Search Results */}
-        {rides.length > 0 && (
+        {rides.length > 0 && !isSearching && (
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">Available Rides</h2>
             {rides.map((ride) => (
@@ -719,9 +778,22 @@ export default function RidesPage() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <Button onClick={() => handleExpressInterest(ride._id)} className="flex items-center gap-2">
-                        <Car className="w-4 h-4" />
-                        Express Interest
+                      <Button 
+                        onClick={() => handleExpressInterest(ride._id)} 
+                        className="flex items-center gap-2"
+                        disabled={expressingInterest === ride._id}
+                      >
+                        {expressingInterest === ride._id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Expressing your interest...
+                          </>
+                        ) : (
+                          <>
+                            <Car className="w-4 h-4" />
+                            Express Interest
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
