@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Car, Star, MapPin, Clock, Shield, Users, MessageSquare, Calendar, CheckCircle } from "lucide-react"
+import { Car, Star, MapPin, Clock, Shield, Users, MessageSquare, Calendar, CheckCircle, Mail, Phone } from "lucide-react"
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -183,6 +183,44 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Contact Us</h2>
+            <p className="text-xl text-gray-600">We're here to help. Get in touch with our team.</p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Get in Touch</CardTitle>
+              <CardDescription>Multiple ways to reach our support team</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="flex items-start gap-4">
+                  <Mail className="w-6 h-6 text-blue-600 mt-1" />
+                  <div>
+                    <h3 className="font-semibold">Email</h3>
+                    <p className="text-gray-600">campussharenotifications@gmail.com</p>
+                    <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <Phone className="w-6 h-6 text-green-600 mt-1" />
+                  <div>
+                    <h3 className="font-semibold">Phone</h3>
+                    <p className="text-gray-600">+1 (582) 203-8438</p>
+                    <p className="text-sm text-gray-500">Mon-Fri, 9 AM - 6 PM EST</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
