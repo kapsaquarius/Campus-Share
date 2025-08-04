@@ -1,6 +1,6 @@
 # CampusShare Backend
 
-The backend API for CampusShare, a student ride-sharing platform built with Flask and MongoDB.
+The backend API for CampusShare, a student ride-sharing platform built with Flask and MongoDB Atlas with integrated email notifications.
 
 ## 🚀 Quick Setup
 
@@ -15,11 +15,12 @@ chmod +x setup.sh
 ```
 
 The script will:
-- ✅ Check MongoDB installation and start it if needed
 - ✅ Create Python virtual environment
 - ✅ Install all dependencies
-- ✅ Initialize database with proper indexes
+- ✅ Set up environment variables
+- ✅ Initialize cloud database with proper indexes
 - ✅ Load location data from CSV
+- ✅ Configure email service
 - ✅ Verify the complete setup
 
 ### Option 2: Manual Setup
@@ -28,14 +29,18 @@ If you prefer to set up manually, follow the detailed instructions below.
 
 ## 📋 Prerequisites
 
-### 1. MongoDB
-- **Version**: 4.4 or higher
-- **Installation**:
-  - **macOS**: `brew install mongodb-community`
-  - **Ubuntu**: `sudo apt-get install mongodb`
-  - **Windows**: Download from [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+### 1. MongoDB Atlas (Cloud)
+- **Account**: Free MongoDB Atlas account
+- **Setup**: Create cluster at [MongoDB Atlas](https://cloud.mongodb.com/)
+- **Connection**: Get connection string from Atlas dashboard
+- **Note**: No local MongoDB installation required
 
-### 2. Python
+### 2. Gmail Account (For Email Service)
+- **Account**: Personal Gmail account
+- **App Password**: Generate app-specific password in Google Account settings
+- **2FA Required**: Gmail 2-factor authentication must be enabled
+
+### 3. Python
 - **Version**: 3.8 or higher
 - Check version: `python3 --version`
 
@@ -47,42 +52,34 @@ git clone <repository-url>
 cd campus-share/backend
 ```
 
-### Step 2: Start MongoDB
-```bash
-# macOS
-brew services start mongodb-community
-
-# Linux
-sudo systemctl start mongod
-
-# Manual start (any OS)
-mongod --config /path/to/mongod.conf --fork
-```
-
-### Step 3: Create Virtual Environment
+### Step 2: Create Virtual Environment
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### Step 4: Install Dependencies
+### Step 3: Install Dependencies
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Step 5: Initialize Database
+### Step 4: Configure Environment Variables
+Create a `.env` file in the backend directory:
 ```bash
-# Create database indexes
-python3 -m scripts.database
+cp .env.example .env  # If example exists, or create manually
+```
+See [Environment Variables](#environment-variables) section for required variables.
 
-# Load location data (39k+ US locations)
-python3 -m scripts.load_locations
+### Step 5: Initialize Cloud Database
+```bash
+# Setup cloud database with indexes and location data
+python3 -m scripts.setup_cloud_database
 ```
 
 ### Step 6: Start the Server
 ```bash
-python3 run.py
+python3 app.py
 ```
 
 ## 🏗️ Project Structure
@@ -90,10 +87,9 @@ python3 run.py
 ```
 backend/
 ├── app.py                 # Flask application factory
-├── run.py                 # Application entry point
-├── config.py              # Configuration settings
 ├── requirements.txt       # Python dependencies
 ├── database.md           # Database schema documentation
+├── .env                   # Environment variables (create from template)
 │
 ├── routes/               # API endpoints
 │   ├── auth.py          # Authentication routes
@@ -105,11 +101,13 @@ backend/
 │   ├── location_service/
 │   ├── notification_service/
 │   ├── ride_service/
-│   └── user_service/
+│   ├── user_service/
+│   └── email_service/    # Email notification service
 │
 ├── scripts/             # Database and setup scripts
-│   ├── database.py      # Database initialization
-│   └── load_locations.py # Location data loader
+│   ├── database.py      # Database connection utilities
+│   ├── load_locations.py # Location data loader (legacy)
+│   └── setup_cloud_database.py # Cloud database setup
 │
 ├── utils/               # Utility functions
 │   └── auth_helpers.py  # Authentication utilities
@@ -120,7 +118,7 @@ backend/
 
 ## 🗄️ Database Schema
 
-The application uses MongoDB with the following collections:
+The application uses MongoDB Atlas (cloud) with the following collections:
 
 ### Collections Overview
 - **users** - User accounts and profiles
@@ -160,30 +158,47 @@ See [database.md](./database.md) for detailed schema documentation.
 Create a `.env` file in the backend directory:
 
 ```env
-# MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/campusshare
+# CampusShare Backend Environment Configuration
 
-# JWT Configuration
-JWT_SECRET_KEY=your-secret-key-here
+# Database (MongoDB Atlas)
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=campus-share
 
-# Flask Configuration
-FLASK_ENV=development
-FLASK_DEBUG=True
+# Security  
+SECRET_KEY=your-super-secret-key-here
 
-# CORS Configuration
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+# CORS (Frontend URL)
+CORS_ORIGINS=http://localhost:3000
+
+# Gmail SMTP Configuration
+EMAIL_ENABLED=true
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_APP_PASSWORD=your-16-digit-app-password
+SMTP_USE_TLS=true
+
+# Email sender information
+FROM_EMAIL=your-email@gmail.com
+FROM_NAME=CampusShare Notifications
+FRONTEND_URL=http://localhost:3000
 ```
 
 ### Database Configuration
-- **Database Name**: `campusshare`
-- **Connection**: `mongodb://localhost:27017/campusshare`
+- **Platform**: MongoDB Atlas (Cloud)
+- **Database Name**: `campus-share`
 - **Collections**: 5 (users, locations, ride_posts, ride_interests, notifications)
+- **Indexes**: Optimized for search performance
+
+### Email Configuration
+- **Service**: Gmail SMTP (Free)
+- **Features**: Ride updates, interest notifications, cancellations
+- **Templates**: HTML email templates with Jinja2
 
 ## 🧪 Testing
 
 ### Test Database Connection
 ```bash
-python3 -c "from scripts.database import get_db; print('✅ Connected:', get_db().name)"
+python3 -c "from scripts.database import get_db; print('✅ Connected to:', get_db().name)"
 ```
 
 ### Test API Endpoints
@@ -193,6 +208,19 @@ curl http://localhost:5000/
 
 # Test location search
 curl "http://localhost:5000/api/locations/search?q=new+york"
+```
+
+### Test Email Service
+```bash
+# Check email configuration
+python3 -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print('Email enabled:', os.getenv('EMAIL_ENABLED'))
+print('SMTP server:', os.getenv('SMTP_SERVER'))
+print('From email:', os.getenv('FROM_EMAIL'))
+"
 ```
 
 ### Database Status
@@ -210,14 +238,35 @@ for collection in db.list_collection_names():
 
 ### Common Issues
 
-#### MongoDB Connection Failed
+#### MongoDB Atlas Connection Failed
 ```bash
-# Check if MongoDB is running
-pgrep mongod
+# Check MongoDB URI in .env file
+grep MONGODB_URI .env
 
-# Start MongoDB
-brew services start mongodb-community  # macOS
-sudo systemctl start mongod            # Linux
+# Test connection
+python3 -c "from scripts.database import get_db; print(get_db().name)"
+
+# Common issues:
+# - Wrong connection string
+# - Network restrictions in Atlas
+# - Incorrect username/password
+```
+
+#### Email Service Issues
+```bash
+# Check Gmail configuration
+python3 -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print('SMTP Username:', os.getenv('SMTP_USERNAME'))
+print('FROM_EMAIL:', os.getenv('FROM_EMAIL'))
+"
+
+# Common issues:
+# - Gmail 2FA not enabled
+# - Wrong app password (16 digits)
+# - Non-personal Gmail account
 ```
 
 #### Import Errors
@@ -234,8 +283,8 @@ pip install -r requirements.txt
 # Verify CSV file exists
 ls -la data/locations.csv
 
-# Reload location data
-python3 -m scripts.load_locations
+# Reload cloud database
+python3 -m scripts.setup_cloud_database
 ```
 
 #### Port Already in Use
@@ -246,7 +295,7 @@ lsof -i :5000
 # Kill the process
 kill -9 <PID>
 
-# Or use a different port in run.py
+# Or change port in app.py
 ```
 
 ## 🔧 Development
@@ -340,15 +389,37 @@ python3 -m scripts.load_locations
 source venv/bin/activate
 
 # Start development server
-python3 run.py
+python3 app.py
 
-# Run database scripts
-python3 -m scripts.database
-python3 -m scripts.load_locations
+# Setup cloud database
+python3 -m scripts.setup_cloud_database
 
 # Check database status
 python3 -c "from scripts.database import get_db; print(get_db().list_collection_names())"
+
+# Test email configuration
+python3 -c "from services.email_service.email_service import EmailService; print('Email service ready')"
 ```
+
+## ✨ New Features
+
+### 📧 Email Notifications
+- **Ride Interest**: Notify drivers when passengers express interest
+- **Ride Updates**: Inform passengers about ride changes
+- **Ride Cancellation**: Alert all parties when rides are cancelled
+- **Interest Removal**: Notify drivers when passengers withdraw interest
+
+### 🌐 Cloud Database
+- **MongoDB Atlas**: Free cloud database hosting
+- **Global Access**: Accessible from anywhere with internet
+- **Automatic Backups**: Built-in data protection
+- **Scalable**: Grows with your application
+
+### 🔧 Configuration Improvements
+- **Environment Variables**: Direct .env integration (no config.py layer)
+- **Cloud-First**: Designed for cloud deployment
+- **Email Templates**: Professional HTML email templates
+- **Error Handling**: Comprehensive error logging and recovery
 
 ---
 
@@ -357,7 +428,8 @@ python3 -c "from scripts.database import get_db; print(get_db().list_collection_
 After setup, your backend will be running at:
 - **API Base URL**: `http://localhost:5000`
 - **Health Check**: `http://localhost:5000/`
-- **Database**: MongoDB on `localhost:27017`
+- **Database**: MongoDB Atlas (Cloud)
+- **Email Service**: Gmail SMTP
 
 The backend is now ready to serve the CampusShare frontend! 🚀
 
