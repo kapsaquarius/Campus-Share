@@ -94,6 +94,37 @@ class UserService:
             return self.get_user_by_id(user_id)
         return None
     
+    def delete_user_and_all_data(self, user_id: str) -> bool:
+        """Delete user and all associated data (rides, interests, notifications)"""
+        try:
+            user_object_id = ObjectId(user_id)
+            
+            # Get references to all collections
+            ride_posts = get_collection('ride_posts')
+            ride_interests = get_collection('ride_interests')
+            notifications = get_collection('notifications')
+            
+            # Delete all ride posts created by this user
+            ride_posts.delete_many({"userId": user_object_id})
+            
+            # Delete all ride interests by this user
+            ride_interests.delete_many({"userId": user_object_id})
+            
+            # Delete all notifications for this user
+            notifications.delete_many({"userId": user_object_id})
+            
+            # Delete all notifications created because of this user's actions
+            notifications.delete_many({"triggeredBy": user_object_id})
+            
+            # Finally, delete the user account
+            result = self.users.delete_one({"_id": user_object_id})
+            
+            return result.deleted_count > 0
+            
+        except Exception as e:
+            print(f"Error deleting user data: {str(e)}")
+            return False
+    
     def _format_user(self, user: Dict) -> Dict:
         """Format user for API response"""
         if not user:
