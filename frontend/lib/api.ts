@@ -174,6 +174,24 @@ class ApiService {
     })
   }
 
+  async searchRides(token: string, searchParams: URLSearchParams) {
+    return this.request(`/rides/search?${searchParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getMyRides(token: string) {
+    return this.request('/rides/my-rides', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
   // Notification endpoints
   async getNotifications(token: string) {
     return this.request('/notifications/', {
@@ -214,9 +232,12 @@ class ApiService {
   // deleteNotification removed - notifications are hidden when read
 
   // Locations endpoints
-  async getLocations(query?: string) {
-    const params = query ? `?q=${encodeURIComponent(query)}` : ''
-    return this.request(`/locations${params}`)
+  async getLocations(query?: string, limit?: number) {
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (limit) params.set('limit', limit.toString())
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    return this.request(`/locations/search${queryString}`)
   }
 
   // Health check
