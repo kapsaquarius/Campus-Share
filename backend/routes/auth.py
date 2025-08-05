@@ -121,6 +121,30 @@ def update_profile():
     except Exception as e:
         return jsonify({"error": "Failed to update profile"}), 500
 
+@auth_bp.route('/delete-account', methods=['DELETE'])
+def delete_account():
+    """Delete current user account and all associated data"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        user_id = user['_id']
+        
+        # Delete all user data
+        success = user_service.delete_user_and_all_data(user_id)
+        
+        if success:
+            return jsonify({
+                "message": "Account and all associated data deleted successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to delete account"}), 500
+            
+    except Exception as e:
+        print(f"Delete account error: {str(e)}")
+        return jsonify({"error": "Failed to delete account"}), 500
+
 def get_current_user():
     """Get current user from request headers"""
     return get_current_user_from_request(request)

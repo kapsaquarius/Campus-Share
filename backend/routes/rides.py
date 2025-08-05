@@ -18,7 +18,8 @@ def search_rides():
         # Handle both GET and POST requests
         if request.method == 'GET':
             # Extract parameters from query string
-            travel_date = datetime.strptime(request.args.get('travelDate', '2024-02-15'), '%Y-%m-%d').date()
+            travel_date_str = request.args.get('travelDate')
+            travel_date = datetime.strptime(travel_date_str, '%Y-%m-%d').date() if travel_date_str else None
             starting_from = request.args.get('startingFrom', '')
             going_to = request.args.get('goingTo', '')
             preferred_time_start = request.args.get('preferredTimeStart', '')
@@ -26,7 +27,8 @@ def search_rides():
         else:
             # Extract parameters from JSON body
             data = request.get_json()
-            travel_date = datetime.strptime(data['travelDate'], '%Y-%m-%d').date()
+            travel_date_str = data.get('travelDate')
+            travel_date = datetime.strptime(travel_date_str, '%Y-%m-%d').date() if travel_date_str else None
             starting_from = data['startingFrom']
             going_to = data['goingTo']
             preferred_time_start = data.get('preferredTimeStart', '')

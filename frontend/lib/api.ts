@@ -89,6 +89,15 @@ class ApiService {
     })
   }
 
+  async deleteAccount(token: string) {
+    return this.request('/auth/delete-account', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
   // Rides endpoints
   async getRides(token: string) {
     return this.request('/rides/', {

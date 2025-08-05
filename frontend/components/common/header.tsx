@@ -95,7 +95,7 @@ export function Header() {
                 
                 <Link href="/rides/my-interested" className={getNavLinkClassName("/rides/my-interested")}>
                   <Heart className="w-4 h-4" />
-                  <span>Interested</span>
+                  <span>My Interested Rides</span>
                 </Link>
               </>
             )}
