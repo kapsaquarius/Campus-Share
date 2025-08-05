@@ -14,7 +14,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "CampusShare - Student Platform for Rides",
   description: "Connect with fellow students for ride-sharing.",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/placeholder-logo.png',
+    shortcut: '/placeholder-logo.png',
+    apple: '/placeholder-logo.png',
+  },
 }
 
 export default function RootLayout({
@@ -24,13 +29,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <NotificationProvider>
             <LocationProvider>
-              <div className="min-h-screen flex flex-col">
+              <div className="min-h-screen flex flex-col bg-gray-50">
                 <Header />
-                <main className="flex-1">{children}</main>
+                <main className="flex-1 pt-0 pb-8">{children}</main>
                 <Footer />
               </div>
               <Toaster />
