@@ -24,36 +24,35 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <section className="relative py-20 px-4">
+      <section className="relative py-12 px-4 sm:py-16 md:py-20">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
             Welcome to <span className="text-blue-600">CampusShare</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-2">
             Your platform for ride-sharing. Connect with fellow
             students and make campus life easier.
           </p>
-
         </div>
       </section>
 
-      <section className="py-16 px-4 bg-white">
+      <section className="py-12 px-4 bg-white sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Your Campus Connection Platform</h2>
-          <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-4">Your Campus Connection Platform</h2>
+          <p className="text-center text-gray-600 mb-8 sm:mb-12 max-w-2xl mx-auto px-2">
             CampusShare makes it easy to connect with fellow students, share rides, and build your campus community.
           </p>
           
-          <div className="text-center mb-16">
-            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
-              <Car className="w-12 h-12 text-blue-600" />
+          <div className="text-center mb-12 sm:mb-16">
+            <div className="mx-auto w-20 h-20 sm:w-24 sm:h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4 sm:mb-6 shadow-lg">
+              <Car className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600" />
             </div>
-            <h3 className="text-3xl font-bold text-blue-900 mb-4">Ride Sharing</h3>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-4">Ride Sharing</h3>
+            <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
               Find rides or offer your car to fellow students. Save money, reduce carbon footprint, and make friends.
             </p>
             
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-4">
                   <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -98,7 +97,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -187,11 +186,11 @@ export default function HomePage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-12 px-4 bg-white sm:py-16">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Contact Us</h2>
-            <p className="text-xl text-gray-600">We're here to help. Get in touch with our team.</p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Contact Us</h2>
+            <p className="text-lg sm:text-xl text-gray-600 px-2">We're here to help. Get in touch with our team.</p>
           </div>
 
           <Card className="text-center hover:shadow-lg transition-shadow">
@@ -212,13 +211,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 bg-blue-600 text-white">
+      <section className="py-12 px-4 bg-blue-600 text-white sm:py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 opacity-90">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Ready to Get Started?</h2>
+          <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90 px-2">
             Join thousands of students already using CampusShare to make campus life easier.
           </p>
-          <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-3">
+          <Button asChild size="lg" variant="secondary" className="text-base sm:text-lg px-6 py-3 sm:px-8 touch-target">
             <Link href="/auth/register">Create Your Account</Link>
           </Button>
         </div>

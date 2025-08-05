@@ -29,13 +29,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <NotificationProvider>
             <LocationProvider>
-              <div className="min-h-screen flex flex-col">
+              <div className="min-h-screen flex flex-col bg-gray-50">
                 <Header />
-                <main className="flex-1">{children}</main>
+                <main className="flex-1 pt-0 pb-8">{children}</main>
                 <Footer />
               </div>
               <Toaster />
