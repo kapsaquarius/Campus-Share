@@ -8,15 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, Phone, MessageCircle, Edit, Save, X, Calendar, Mail, Loader2 } from "lucide-react"
+import { User, Phone, MessageCircle, Edit, Save, X, Calendar, Mail, Loader2, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { apiService } from "@/lib/api"
+import { useRouter } from "next/navigation"
 
 export default function ProfilePage() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, logout, token } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
 
   // Use actual user data
   const currentUser = user
@@ -153,6 +158,47 @@ export default function ProfilePage() {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Please log in to delete your account",
+        variant: "destructive",
+        duration: 5000,
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const result = await apiService.deleteAccount(token)
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account and all associated data have been permanently deleted.",
+        duration: 5000,
+      })
+
+      // Log out and redirect to home page
+      logout()
+      router.push('/')
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete account. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -359,6 +405,70 @@ export default function ProfilePage() {
                 <div>
                   <span className="text-gray-600">Last Updated:</span>
                   <p className="font-medium">{currentUser?.updatedAt ? format(new Date(currentUser.updatedAt), "PPP") : "Unknown"}</p>
+                </div>
+              </div>
+
+              {/* Delete Account Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <div className="mb-4">
+                    <p className="text-sm text-red-800">
+                      Once you delete your account, there is no going back. This will permanently delete your account, all your rides, interests, and notifications.
+                    </p>
+                  </div>
+                  
+                  <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Deleting Account...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Account
+                        </>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your account and remove all of your data from our servers, including:
+                        <br />
+                        <br />
+                        • Your account profile
+                        <br />
+                        • All ride posts you've created
+                        <br />
+                        • All ride interests you've expressed
+                        <br />
+                        <br />
+                        <strong>This action is irreversible.</strong>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          "Yes, delete my account"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 </div>
               </div>
             </CardContent>
