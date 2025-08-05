@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { API_BASE_URL } from '../lib/api'
+import { apiService } from '../lib/api'
 
 interface Location {
   _id: string
@@ -52,14 +52,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   const searchLocations = async (query: string): Promise<Location[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/locations/search?q=${encodeURIComponent(query)}&limit=20`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to search locations')
-      }
-      
-      const data = await response.json()
-      const locations = data.locations || []
+      const response = await apiService.getLocations(query, 20)
+      const locations = response.data?.locations || []
       
       // Process and simplify suggestions - only city-level results
       return processSimplifiedLocationSuggestions(locations, query)

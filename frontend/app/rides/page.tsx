@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useNotifications } from "@/contexts/notification-context"
-import { API_BASE_URL } from "@/lib/api"
 import { apiService } from "@/lib/api"
 import { TimeInput } from "@/components/ui/time-input"
 import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare, X, Loader2 } from "lucide-react"
@@ -366,18 +365,13 @@ export default function RidesPage() {
         searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
       }
 
-      const response = await fetch(`${API_BASE_URL}/rides/search?${searchParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+      const response = await apiService.searchRides(token, searchParams)
 
-      if (!response.ok) {
+      if (response.error) {
         throw new Error('Search failed')
       }
 
-      const data = await response.json()
+      const data = response.data || {}
       
       // Filter out user's own rides from search results
       const filteredRides = (data.rides || []).filter((ride: any) => {
@@ -425,15 +419,10 @@ export default function RidesPage() {
         searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
       }
 
-      const response = await fetch(`${API_BASE_URL}/rides/search?${searchParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+      const response = await apiService.searchRides(token, searchParams)
 
-      if (response.ok) {
-        const data = await response.json()
+      if (!response.error) {
+        const data = response.data || {}
         
         // Filter out user's own rides from search results
         const filteredRides = (data.rides || []).filter((ride: any) => {

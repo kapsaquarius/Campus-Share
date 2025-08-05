@@ -15,7 +15,7 @@ import { InterestedUsersModal } from '@/components/InterestedUsersModal';
 import { ProtectedRoute } from '@/components/common/protected-route';
 import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { apiService, API_BASE_URL } from '@/lib/api';
+import { apiService } from '@/lib/api';
 import { useLocation } from '@/contexts/location-context';
 import { TimeInput } from '@/components/ui/time-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -139,15 +139,10 @@ export default function MyRidesPage() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/rides/my-rides`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.getMyRides(token);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.error) {
+        const data = response.data || {};
         setRides(data.rides || []);
       } else {
         toast({

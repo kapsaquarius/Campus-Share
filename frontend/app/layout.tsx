@@ -14,7 +14,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "CampusShare - Student Platform for Rides",
   description: "Connect with fellow students for ride-sharing.",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/placeholder-logo.png',
+    shortcut: '/placeholder-logo.png',
+    apple: '/placeholder-logo.png',
+  },
 }
 
 export default function RootLayout({
