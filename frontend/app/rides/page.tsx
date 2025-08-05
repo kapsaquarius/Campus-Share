@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useNotifications } from "@/contexts/notification-context"
+import { API_BASE_URL } from "@/lib/api"
 import { apiService } from "@/lib/api"
 import { TimeInput } from "@/components/ui/time-input"
 import { Car, MapPin, Clock, Users, DollarSign, Phone, CalendarIcon, Search, Plus, MessageSquare, X, Loader2 } from "lucide-react"
@@ -365,7 +366,7 @@ export default function RidesPage() {
         searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
       }
 
-      const response = await fetch(`http://localhost:5000/api/rides/search?${searchParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/rides/search?${searchParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -424,7 +425,7 @@ export default function RidesPage() {
         searchParams.set('preferredTimeEnd', searchForm.preferredTimeEnd)
       }
 
-      const response = await fetch(`http://localhost:5000/api/rides/search?${searchParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/rides/search?${searchParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

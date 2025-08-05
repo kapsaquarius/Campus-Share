@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
+import { API_BASE_URL } from '../lib/api'
 
 interface Location {
   _id: string
@@ -51,7 +52,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   const searchLocations = async (query: string): Promise<Location[]> => {
     try {
-      const response = await fetch(`http://localhost:5000/api/locations/search?q=${encodeURIComponent(query)}&limit=20`)
+      const response = await fetch(`${API_BASE_URL}/locations/search?q=${encodeURIComponent(query)}&limit=20`)
       
       if (!response.ok) {
         throw new Error('Failed to search locations')
