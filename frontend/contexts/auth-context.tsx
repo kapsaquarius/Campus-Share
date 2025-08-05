@@ -32,7 +32,7 @@ interface ProfileData {
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<{ error?: string; success?: boolean }>
   register: (userData: RegisterData) => Promise<void>
   logout: () => void
   updateProfile: (profileData: ProfileData) => Promise<void>
@@ -97,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return { success: true }
       }
+      
+      return { error: 'Login failed' }
     } catch (error) {
       console.error('Login error:', error)
       return { error: 'Network error occurred' }

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { Eye, EyeOff, Loader2, Check } from "lucide-react"
+import { Eye, EyeOff, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
+import { apiService } from "@/lib/api"
 
 interface FormData {
   username: string
@@ -42,10 +43,46 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [emailChecking, setEmailChecking] = useState(false)
+  const [emailExists, setEmailExists] = useState<boolean | null>(null)
 
   const { register } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+
+  // Debounced email checking function
+  const checkEmailAvailability = useCallback(async (email: string) => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailExists(null)
+      return
+    }
+
+    setEmailChecking(true)
+    try {
+      const result = await apiService.checkEmailExists(email)
+      if (result.data) {
+        setEmailExists(result.data.exists)
+      }
+    } catch (error) {
+      console.error("Email check failed:", error)
+      setEmailExists(null)
+    } finally {
+      setEmailChecking(false)
+    }
+  }, [])
+
+  // Debounce email checking
+  useEffect(() => {
+    if (formData.email) {
+      const timer = setTimeout(() => {
+        checkEmailAvailability(formData.email)
+      }, 500) // 500ms delay
+
+      return () => clearTimeout(timer)
+    } else {
+      setEmailExists(null)
+    }
+  }, [formData.email, checkEmailAvailability])
 
   const getPasswordStrength = (password: string) => {
     let strength = 0
@@ -75,6 +112,7 @@ export default function RegisterPage() {
       case "email":
         if (!value) return "Email is required"
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address"
+        if (emailExists === true) return "This email address is already registered. Please use a different email."
         return ""
 
       case "password":
@@ -199,7 +237,9 @@ export default function RegisterPage() {
     formData.confirmPassword &&
     formData.name &&
     formData.agreeToTerms &&
-    Object.keys(errors).length === 0
+    Object.keys(errors).length === 0 &&
+    emailExists === false && // Email must be available (not exist)
+    !emailChecking // Email check must not be in progress
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -240,12 +280,36 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Enter your email"
                   className={
-                    errors.email ? "border-red-500" : formData.email && !errors.email ? "border-green-500" : ""
+                    errors.email || emailExists === true 
+                      ? "border-red-500" 
+                      : formData.email && emailExists === false && !errors.email 
+                        ? "border-green-500" 
+                        : ""
                   }
                 />
-                {formData.email && !errors.email && <Check className="absolute right-3 top-3 h-4 w-4 text-green-500" />}
+                {emailChecking && (
+                  <Loader2 className="absolute right-3 top-3 h-4 w-4 text-blue-500 animate-spin" />
+                )}
+                {!emailChecking && formData.email && emailExists === false && !errors.email && (
+                  <Check className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                )}
+                {!emailChecking && emailExists === true && (
+                  <X className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                )}
               </div>
               {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+              {!errors.email && emailExists === true && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  This email address is already registered. Please use a different email.
+                </p>
+              )}
+              {!errors.email && emailExists === false && formData.email && (
+                <p className="text-sm text-green-600 flex items-center gap-1">
+                  <Check className="h-4 w-4" />
+                  Email address is available
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

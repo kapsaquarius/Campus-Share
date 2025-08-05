@@ -125,6 +125,81 @@ class UserService:
             print(f"Error deleting user data: {str(e)}")
             return False
     
+    def get_user_by_email(self, email: str) -> Optional[Dict]:
+        """Get user by email address"""
+        user = self.users.find_one({"email": email.lower()})
+        return self._format_user(user) if user else None
+    
+    def store_password_reset_code(self, user_id: str, code: str, expiration: datetime) -> bool:
+        """Store password reset verification code"""
+        try:
+            result = self.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {
+                    "passwordResetCode": code,
+                    "passwordResetExpiration": expiration,
+                    "updatedAt": datetime.utcnow()
+                }}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error storing password reset code: {str(e)}")
+            return False
+    
+    def verify_password_reset_code(self, user_id: str, code: str) -> bool:
+        """Verify password reset code and check expiration"""
+        try:
+            user = self.users.find_one({
+                "_id": ObjectId(user_id),
+                "passwordResetCode": code,
+                "passwordResetExpiration": {"$gt": datetime.utcnow()}
+            })
+            return user is not None
+        except Exception as e:
+            print(f"Error verifying password reset code: {str(e)}")
+            return False
+    
+    def reset_password_with_code(self, user_id: str, code: str, new_password: str) -> Dict:
+        """Reset password after verifying code"""
+        try:
+            # First verify the code is still valid
+            if not self.verify_password_reset_code(user_id, code):
+                return {"success": False, "error": "Invalid or expired verification code"}
+            
+            # Get current user to check existing password
+            user = self.users.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return {"success": False, "error": "User not found"}
+            
+            # Check if new password is same as current password
+            if bcrypt.checkpw(new_password.encode('utf-8'), user['password'].encode('utf-8')):
+                return {"success": False, "error": "New password must be different from your current password"}
+            
+            # Hash the new password
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            
+            # Update password and clear reset code
+            result = self.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {
+                    "password": hashed_password.decode('utf-8'),
+                    "updatedAt": datetime.utcnow()
+                },
+                "$unset": {
+                    "passwordResetCode": "",
+                    "passwordResetExpiration": ""
+                }}
+            )
+            
+            if result.modified_count > 0:
+                return {"success": True}
+            else:
+                return {"success": False, "error": "Failed to update password"}
+                
+        except Exception as e:
+            print(f"Error resetting password: {str(e)}")
+            return {"success": False, "error": "Failed to reset password"}
+    
     def _format_user(self, user: Dict) -> Dict:
         """Format user for API response"""
         if not user:

@@ -98,6 +98,35 @@ class ApiService {
     })
   }
 
+  // Password Reset endpoints
+  async forgotPassword(email: string) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  }
+
+  async verifyResetCode(email: string, code: string) {
+    return this.request('/auth/verify-reset-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    })
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, newPassword }),
+    })
+  }
+
+  async checkEmailExists(email: string) {
+    return this.request('/auth/check-email', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  }
+
   // Rides endpoints
   async getRides(token: string) {
     return this.request('/rides/', {
