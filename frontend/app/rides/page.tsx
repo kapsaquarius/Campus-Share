@@ -148,7 +148,6 @@ export default function RidesPage() {
   // Check if form is valid
   const isFormValid = () => {
     return (
-      searchForm.travelDate &&
       searchForm.startingFrom.trim() &&
       searchForm.goingTo.trim() &&
       validSelections.startingFrom &&
@@ -317,9 +316,7 @@ export default function RidesPage() {
     // Frontend validation - check required fields
     const errors: string[] = []
     
-    if (!searchForm.travelDate) {
-      errors.push("Travel date is required")
-    } else if (searchForm.travelDate < getTodayStart()) {
+    if (searchForm.travelDate && searchForm.travelDate < getTodayStart()) {
       errors.push("Travel date cannot be in the past")
     }
     
@@ -397,7 +394,7 @@ export default function RidesPage() {
   }
 
   const refreshSearchResults = async () => {
-    if (!token || !searchForm.travelDate || !searchForm.startingFrom || !searchForm.goingTo) return
+    if (!token || !searchForm.startingFrom || !searchForm.goingTo) return
     
     try {
       // Build search parameters from form data (same as handleSearch but without loading state)
@@ -502,15 +499,15 @@ export default function RidesPage() {
             <CardDescription>Find rides that match your travel plans</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
-                <Label>Travel Date <span className="text-red-500">*</span></Label>
+                <Label>Travel Date</Label>
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={`flex-1 justify-start text-left font-normal bg-transparent ${!searchForm.travelDate && formErrors.length > 0 ? "border-red-500 text-red-500" : ""}`}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {searchForm.travelDate ? format(searchForm.travelDate, "PPP") : "Select travel date *"}
+                        {searchForm.travelDate ? format(searchForm.travelDate, "PPP") : "Select travel date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -635,36 +632,34 @@ export default function RidesPage() {
                 )}
               </div>
 
-              <div className="space-y-2 sm:col-span-2 lg:col-span-2">
-                <Label>Preferred Earliest and Latest Start Times</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex-1">
-                    <TimeInput
-                      value={searchForm.preferredTimeStart}
-                      onChange={(value) => {
-                        setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))
-                        // Validate times when start time changes
-                        setTimeout(() => validateTimes(value, searchForm.preferredTimeEnd), 0)
-                      }}
-                      placeholder="Earliest time"
-                      className={timeErrors.preferredTimeStart ? 'border-red-500' : ''}
-                      error={timeErrors.preferredTimeStart}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <TimeInput
-                      value={searchForm.preferredTimeEnd}
-                      onChange={(value) => {
-                        setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))
-                        // Validate times when end time changes
-                        setTimeout(() => validateTimes(searchForm.preferredTimeStart, value), 0)
-                      }}
-                      placeholder="Latest time"
-                      className={timeErrors.preferredTimeEnd ? 'border-red-500' : ''}
-                      error={timeErrors.preferredTimeEnd}
-                    />
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label>Earliest Preferred Start Time</Label>
+                <TimeInput
+                  value={searchForm.preferredTimeStart}
+                  onChange={(value) => {
+                    setSearchForm((prev) => ({ ...prev, preferredTimeStart: value }))
+                    // Validate times when start time changes
+                    setTimeout(() => validateTimes(value, searchForm.preferredTimeEnd), 0)
+                  }}
+                  placeholder="Earliest time"
+                  className={timeErrors.preferredTimeStart ? 'border-red-500' : ''}
+                  error={timeErrors.preferredTimeStart}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Latest Preferred Start Time</Label>
+                <TimeInput
+                  value={searchForm.preferredTimeEnd}
+                  onChange={(value) => {
+                    setSearchForm((prev) => ({ ...prev, preferredTimeEnd: value }))
+                    // Validate times when end time changes
+                    setTimeout(() => validateTimes(searchForm.preferredTimeStart, value), 0)
+                  }}
+                  placeholder="Latest time"
+                  className={timeErrors.preferredTimeEnd ? 'border-red-500' : ''}
+                  error={timeErrors.preferredTimeEnd}
+                />
               </div>
             </div>
 
