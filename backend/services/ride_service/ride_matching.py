@@ -150,15 +150,16 @@ def search_rides_with_scoring(search_criteria, user_id=None):
     """Search for rides and apply intelligent scoring with city-level matching"""
     ride_posts = get_collection('ride_posts')
     
-    # Convert date to string for MongoDB query
-    travel_date_str = search_criteria['travelDate'].strftime('%Y-%m-%d') if hasattr(search_criteria['travelDate'], 'strftime') else str(search_criteria['travelDate'])
-    
     # Base query
     base_query = {
         'status': 'active',
-        'travelDate': travel_date_str,
         'seatsRemaining': {'$gt': 0}
     }
+    
+    # Add travel date filter only if provided
+    if search_criteria.get('travelDate'):
+        travel_date_str = search_criteria['travelDate'].strftime('%Y-%m-%d') if hasattr(search_criteria['travelDate'], 'strftime') else str(search_criteria['travelDate'])
+        base_query['travelDate'] = travel_date_str
     
     # Exclude user's own rides if user is authenticated
     if user_id:
