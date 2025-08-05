@@ -371,7 +371,7 @@ export default function RidesPage() {
         throw new Error('Search failed')
       }
 
-      const data = response.data || {}
+      const data = response.data || {} as any
       
       // Filter out user's own rides from search results
       const filteredRides = (data.rides || []).filter((ride: any) => {
@@ -422,7 +422,7 @@ export default function RidesPage() {
       const response = await apiService.searchRides(token, searchParams)
 
       if (!response.error) {
-        const data = response.data || {}
+        const data = response.data || {} as any
         
         // Filter out user's own rides from search results
         const filteredRides = (data.rides || []).filter((ride: any) => {
@@ -486,23 +486,23 @@ export default function RidesPage() {
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Find Rides</h1>
-          <p className="text-gray-600 mt-2">Search for available rides</p>
+      <div className="container mx-auto px-4 py-4 sm:py-6 md:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Find Rides</h1>
+          <p className="text-gray-600 mt-1 sm:mt-2">Search for available rides</p>
         </div>
 
         {/* Search Form */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="mb-6 sm:mb-8">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Search className="w-5 h-5" />
               Search for Rides
             </CardTitle>
             <CardDescription>Find rides that match your travel plans</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label>Travel Date <span className="text-red-500">*</span></Label>
                 <div className="flex gap-2">
@@ -635,9 +635,9 @@ export default function RidesPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2 lg:col-span-2">
                 <Label>Preferred Earliest and Latest Start Times</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <div className="flex-1">
                     <TimeInput
                       value={searchForm.preferredTimeStart}
@@ -670,17 +670,17 @@ export default function RidesPage() {
 
             <Button 
               onClick={handleSearch} 
-              className="w-full mt-4" 
+              className="w-full mt-6 h-12 text-base font-medium touch-target" 
               disabled={isSearching || !isFormValid()}
             >
               {isSearching ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Searching...
                 </>
               ) : (
                 <>
-                  <Search className="w-4 h-4 mr-2" />
+                  <Search className="w-5 h-5 mr-2" />
                   Search Rides
                 </>
               )}
@@ -712,81 +712,88 @@ export default function RidesPage() {
 
         {/* Search Results */}
         {rides.length > 0 && !isSearching && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Available Rides</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <h2 className="text-xl sm:text-2xl font-semibold">Available Rides</h2>
             {rides.map((ride) => (
               <Card key={ride._id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                          <MapPin className="w-5 h-5 text-blue-600" />
-                          {ride.startingFrom?.displayName || 'Location not specified'}
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4">
+                    {/* Route Info */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+                          <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                          <span className="break-words">{ride.startingFrom?.displayName || 'Location not specified'}</span>
                         </div>
-                        <span className="text-gray-400">→</span>
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                          <MapPin className="w-5 h-5 text-green-600" />
-                          {ride.goingTo?.displayName || 'Location not specified'}
+                        <span className="text-gray-400 hidden sm:inline">→</span>
+                        <div className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+                          <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                          <span className="break-words">{ride.goingTo?.displayName || 'Location not specified'}</span>
                         </div>
                         {ride.isHotRide && (
-                          <Badge variant="destructive" className="ml-2">
+                          <Badge variant="destructive" className="self-start sm:self-center">
                             🔥 Hot Ride
                           </Badge>
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="w-4 h-4" />
-                          {formatDate(ride.travelDate)}
+                      {/* Trip Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4 flex-shrink-0" />
+                          <span>{formatDate(ride.travelDate)}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          Starting between {formatTimeRange(ride.departureStartTime, ride.departureEndTime)}
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 flex-shrink-0" />
+                          <span className="break-words">{formatTimeRange(ride.departureStartTime, ride.departureEndTime)}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {ride.availableSeats} seat{ride.availableSeats === 1 ? '' : 's'}
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 flex-shrink-0" />
+                          <span>{ride.availableSeats} seat{ride.availableSeats === 1 ? '' : 's'}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          {ride.suggestedContribution.amount > 0 
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 flex-shrink-0" />
+                          <span>{ride.suggestedContribution.amount > 0 
                             ? `${ride.suggestedContribution.amount} ${ride.suggestedContribution.currency}`
                             : "Free"
-                          }
+                          }</span>
                         </div>
                       </div>
 
-                      <div className="mt-3">
+                      {/* Driver Info */}
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="font-medium">Driver: {ride.driver.name}</span>
+                            <span className="font-medium text-gray-900">Driver: {ride.driver.name}</span>
                             <div className="flex items-center gap-4 mt-1">
-                              <span className="text-sm text-gray-500">{ride.interestCount} interested</span>
+                              <span className="text-sm text-gray-500">
+                                {ride.interestCount} student{ride.interestCount === 1 ? '' : 's'} interested
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
 
+                      {/* Additional Details */}
                       {ride.additionalDetails && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <p className="text-xs text-blue-600 font-medium mb-1">Additional Details:</p>
-                          <p className="text-sm text-blue-800">{ride.additionalDetails}</p>
+                          <p className="text-sm text-blue-800 break-words">{ride.additionalDetails}</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    {/* Action Button */}
+                    <div className="pt-2 border-t border-gray-100">
                       <Button 
                         onClick={() => handleExpressInterest(ride._id)} 
-                        className="flex items-center gap-2"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 h-11 font-medium touch-target"
                         disabled={expressingInterest === ride._id}
                       >
                         {expressingInterest === ride._id ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Expressing your interest...
+                            Expressing Interest...
                           </>
                         ) : (
                           <>
