@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Car, Star, MapPin, Clock, Shield, Users, MessageSquare, Calendar, CheckCircle, Mail } from "lucide-react"
+import { Car, MapPin, Clock, Shield, Users, MessageSquare, Calendar, CheckCircle, Mail, Home as HomeIcon, DollarSign, UtensilsCrossed } from "lucide-react"
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -30,9 +30,9 @@ export default function HomePage() {
             Welcome to <span className="text-blue-600">CampusShare</span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-2">
-            Your platform for ride-sharing. Connect with fellow
-            students and make campus life easier.
+            Your platform for ride-sharing and roommate matching. Connect with fellow students and make campus life easier.
           </p>
+          {/* Removed CTAs on request */}
         </div>
       </section>
 
@@ -84,17 +84,74 @@ export default function HomePage() {
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-4">
                   <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                    <Star className="w-8 h-8 text-blue-600" />
+                    <DollarSign className="w-8 h-8 text-blue-600" />
                   </div>
-                  <CardTitle className="text-xl text-blue-900">Verified Users</CardTitle>
+                  <CardTitle className="text-xl text-blue-900">Affordable Contributions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-gray-600">
-                    Connect with verified student accounts for safe and secure rides
+                    Set an affordable suggested contribution
                   </CardDescription>
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Roommate Matching */}
+          <div className="text-center mt-16 sm:mt-20 mb-12 sm:mb-16">
+            <div className="mx-auto w-20 h-20 sm:w-24 sm:h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 sm:mb-6 shadow-lg">
+              <HomeIcon className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-600" />
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold text-emerald-900 mb-4">Roommate Matching</h3>
+            <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
+              Find compatible roommates with smart matching on location, budget, and lifestyle preferences.
+            </p>
+
+            <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-4">
+                  <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <MapPin className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <CardTitle className="text-xl text-emerald-900">Smart Matching</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600">
+                    Location and preference-based suggestions
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-4">
+                  <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <DollarSign className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <CardTitle className="text-xl text-emerald-900">Budget Range</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600">
+                    Flexible min–max budgets with overlap detection and scoring
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-4">
+                  <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <UtensilsCrossed className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <CardTitle className="text-xl text-emerald-900">Lifestyle Preferences</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600">
+                    Dietary, sleep schedule, guests/week, pets and smoking preferences
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Removed CTAs on request */}
           </div>
 
           <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
@@ -105,18 +162,18 @@ export default function HomePage() {
                 </div>
                 <CardTitle className="text-xl">Safe & Secure</CardTitle>
                 <CardDescription>
-                  Your safety is our priority with verified student accounts and secure connections.
+                  Your safety is our priority with in-app profiles and helpful safety guidance.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li className="flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    Student verification
+                    Clear profile info
                   </li>
                   <li className="flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    Secure verification
+                    Safety tips & guidelines
                   </li>
                   <li className="flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
@@ -215,7 +272,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Ready to Get Started?</h2>
           <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90 px-2">
-            Join thousands of students already using CampusShare to make campus life easier.
+            Be an early part of CampusShare and help shape a better campus experience.
           </p>
           <Button asChild size="lg" variant="secondary" className="text-base sm:text-lg px-6 py-3 sm:px-8 touch-target">
             <Link href="/auth/register">Create Your Account</Link>

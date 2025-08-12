@@ -11,7 +11,7 @@ export function Footer() {
             </div>
             <span className="text-xl font-bold text-gray-900">CampusShare</span>
           </div>
-          <p className="text-gray-600 text-sm">Connecting students for rides.</p>
+          <p className="text-gray-600 text-sm">Connecting students for rides and roommates.</p>
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600">
