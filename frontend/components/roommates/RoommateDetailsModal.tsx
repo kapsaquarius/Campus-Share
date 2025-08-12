@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, MapPin, Calendar, DollarSign, Home, Phone, UtensilsCrossed, Moon, Users as UsersIcon } from "lucide-react"
+import { Loader2, MapPin, Calendar, DollarSign, Home, Phone, UtensilsCrossed, Moon, Users as UsersIcon, PawPrint, Cigarette } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { apiService } from "@/lib/api"
 
@@ -98,10 +98,33 @@ export function RoommateDetailsModal({ isOpen, onClose, listingId }: RoommateDet
                         : "Budget flexible"}
                     </span>
                   </div>
+                  {listing.exactAddress && (
+                    <div className="col-span-2 md:col-span-3">
+                      <span className="text-gray-700">{listing.exactAddress}</span>
+                    </div>
+                  )}
                   {listing.roomType && (
                     <div className="flex items-center gap-2">
                       <Home className="w-4 h-4 text-gray-500" />
                       <span>{listing.roomType}</span>
+                    </div>
+                  )}
+                  {typeof listing.furnished === 'boolean' && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 h-4 text-gray-500 inline-flex items-center justify-center">🛋️</span>
+                      <span>Furnished: {listing.furnished ? 'Yes' : 'No'}</span>
+                    </div>
+                  )}
+                  {typeof listing.petFriendly === 'boolean' && (
+                    <div className="flex items-center gap-2">
+                      <PawPrint className="w-4 h-4 text-gray-500" />
+                      <span>Pets: {listing.petFriendly ? 'OK' : 'Not allowed'}</span>
+                    </div>
+                  )}
+                  {typeof listing.smokerOk === 'boolean' && (
+                    <div className="flex items-center gap-2">
+                      <Cigarette className="w-4 h-4 text-gray-500" />
+                      <span>Smoking: {listing.smokerOk ? 'OK' : 'No'}</span>
                     </div>
                   )}
                   {listing.dietaryPreference && (

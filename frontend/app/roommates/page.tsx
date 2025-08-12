@@ -339,6 +339,11 @@ export default function RoommatesPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
+                      {(item as any).exactAddress && (
+                        <div className="flex items-center gap-2">
+                          <span>{(item as any).exactAddress}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4 flex-shrink-0" />
                         <span>{item.moveInEarliest ? `Move-in: ${item.moveInEarliest}` : 'Move-in flexible'}</span>

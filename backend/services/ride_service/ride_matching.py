@@ -108,9 +108,14 @@ def calculate_ride_score(ride, search_criteria):
     seat_score = min(ride['seatsRemaining'] / ride['availableSeats'], 1.0)
     score += seat_score * 0.1
     
-    # Popularity bonus (5% weight)
-    ride_interests = get_collection('ride_interests')
-    interest_count = ride_interests.count_documents({'rideId': ride['_id']})
+    # Popularity bonus (5% weight) – prefer precomputed count if present
+    interest_count = ride.get('interestCount')
+    if interest_count is None:
+        ride_interests = get_collection('ride_interests')
+        try:
+            interest_count = ride_interests.count_documents({'rideId': ride['_id']}, hint=[('rideId', 1)])
+        except Exception:
+            interest_count = ride_interests.count_documents({'rideId': ride['_id']})
     popularity_score = min(interest_count / 5.0, 1.0)  # Cap at 5 interests
     score += popularity_score * 0.05
     
@@ -204,6 +209,22 @@ def search_rides_with_scoring(search_criteria, user_id=None):
             if str(ride['_id']) not in interested_ride_ids and str(ride['userId']) != str(user_id)
         ]
     
+    # Precompute interest counts for popularity scoring in one aggregation
+    if potential_rides:
+        ride_ids = [r['_id'] for r in potential_rides]
+        ride_interests = get_collection('ride_interests')
+        try:
+            pipeline = [
+                {'$match': {'rideId': {'$in': ride_ids}, 'status': 'interested'}},
+                {'$group': {'_id': '$rideId', 'count': {'$sum': 1}}}
+            ]
+            counts = list(ride_interests.aggregate(pipeline))
+            counts_map = {c['_id']: c['count'] for c in counts}
+        except Exception:
+            counts_map = {}
+        for r in potential_rides:
+            r['interestCount'] = counts_map.get(r['_id'], 0)
+
     scored_rides = []
     
     # Check if user provided time preferences

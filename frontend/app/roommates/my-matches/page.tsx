@@ -113,6 +113,11 @@ export default function MyRoommateMatchesPage() {
 
                     {/* Details grid - show all listing details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                      {item.listing?.exactAddress && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600">{item.listing.exactAddress}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4 text-gray-500" />
                         <span>{item.listing?.moveInEarliest ? formatDate(item.listing.moveInEarliest) : 'Move-in flexible'}</span>

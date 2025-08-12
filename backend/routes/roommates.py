@@ -8,6 +8,7 @@ from services.notification_service import (
     create_roommate_interest_notification,
     create_roommate_interest_removed_notification,
     create_roommate_update_notification,
+    create_roommate_cancellation_notification,
 )
 
 roommates_bp = Blueprint('roommates', __name__)
@@ -112,6 +113,7 @@ def create_roommate_post():
             'userId': ObjectId(user['_id']),
             'type': data.get('type', 'offer'),
             'location': data.get('location', ''),
+            'exactAddress': data.get('exactAddress'),
             'moveInEarliest': data.get('moveInEarliest'),
             'budgetMin': data.get('budgetMin', 0),
             'budgetMax': data.get('budgetMax', 0),
@@ -232,6 +234,7 @@ def get_my_interested_roommates():
                     '_id': {'$toString': '$post._id'},
                     'type': '$post.type',
                     'location': '$post.location',
+                    'exactAddress': '$post.exactAddress',
                     'moveInEarliest': '$post.moveInEarliest',
                     'budgetMin': '$post.budgetMin',
                     'budgetMax': '$post.budgetMax',
@@ -298,6 +301,8 @@ def update_roommate_post(post_id):
             updates['type'] = data['type']
         if 'location' in data:
             updates['location'] = data['location']
+        if 'exactAddress' in data:
+            updates['exactAddress'] = data['exactAddress']
         if 'moveInEarliest' in data:
             updates['moveInEarliest'] = data['moveInEarliest']
         if 'budgetMin' in data:
@@ -323,7 +328,8 @@ def update_roommate_post(post_id):
 
         updates['updatedAt'] = datetime.utcnow()
 
-        posts.update_one({'_id': post_id_obj}, {'$set': updates})
+        # Ownership-safe update (include userId in filter for parity with rides)
+        posts.update_one({'_id': post_id_obj, 'userId': ObjectId(user['_id'])}, {'$set': updates})
         updated = posts.find_one({'_id': post_id_obj})
         # Notify interested users similar to rides
         try:
@@ -348,6 +354,12 @@ def delete_roommate_post(post_id):
             return jsonify({'error': 'Listing not found'}), 404
         if str(existing['userId']) != str(user['_id']):
             return jsonify({'error': 'Forbidden'}), 403
+
+        # Notify interested users before deleting (parity with rides)
+        try:
+            create_roommate_cancellation_notification(post_id_obj, existing)
+        except Exception as e:
+            print(f"Roommate cancellation notification error: {e}")
 
         posts.delete_one({'_id': post_id_obj})
         # Cascade delete interests

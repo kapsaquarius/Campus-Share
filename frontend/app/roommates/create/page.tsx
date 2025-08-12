@@ -33,6 +33,7 @@ interface CreateRoommateForm {
   sleep: "early_bird" | "night_owl" | "flexible" | "any"
   guestsPerWeek: "0" | "1-2" | "3-4" | "5+" | "any"
   additionalDetails: string
+  exactAddress?: string
 }
 
 export default function CreateRoommatePage() {
@@ -54,6 +55,7 @@ export default function CreateRoommatePage() {
     sleep: "any",
     guestsPerWeek: "any",
     additionalDetails: "",
+    exactAddress: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -68,6 +70,8 @@ export default function CreateRoommatePage() {
       formData.location.trim().length > 0 &&
       validLocation &&
       !!formData.moveIn &&
+      // When offering a room, exact address is required
+      (formData.type !== 'offer' || (formData.exactAddress || '').trim().length > 0) &&
       Object.keys(errors).length === 0
     )
   }
@@ -81,6 +85,7 @@ export default function CreateRoommatePage() {
     const newErrors: Record<string, string> = {}
     if (!formData.location || !validLocation) newErrors.location = "Please select a valid location"
     if (!formData.moveIn) newErrors.moveIn = "Move-in date is required"
+    if (formData.type === 'offer' && !(formData.exactAddress || '').trim()) newErrors.exactAddress = 'Exact address is required when offering a room'
     // No extra validation needed for range slider
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -109,6 +114,7 @@ export default function CreateRoommatePage() {
         sleepSchedule: formData.sleep === "any" ? undefined : formData.sleep,
         guestsPerWeek: formData.guestsPerWeek === "any" ? undefined : formData.guestsPerWeek,
         additionalDetails: formData.additionalDetails,
+        exactAddress: formData.type === 'offer' ? (formData.exactAddress || '').trim() : undefined,
       }
       const response = await apiService.createRoommate(token, payload)
       if (response.error) throw new Error(response.error)
@@ -332,6 +338,20 @@ export default function CreateRoommatePage() {
                   </Select>
                 </div>
               </div>
+
+              {formData.type === 'offer' && (
+                <div className="space-y-2">
+                  <Label htmlFor="exactAddress">Exact address <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="exactAddress"
+                    placeholder="Enter the full address of the place"
+                    value={formData.exactAddress || ''}
+                    onChange={(e) => handleInputChange('exactAddress', e.target.value)}
+                    className={errors.exactAddress ? 'border-red-500' : ''}
+                  />
+                  {errors.exactAddress && <p className="text-sm text-red-600">{errors.exactAddress}</p>}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="additionalDetails">Additional Details</Label>

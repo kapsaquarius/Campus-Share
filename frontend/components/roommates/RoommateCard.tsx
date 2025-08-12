@@ -12,6 +12,7 @@ export interface RoommateListing {
   location?: { displayName?: string } | string
   city?: string
   neighborhood?: string
+  exactAddress?: string
   budgetMin?: number
   budgetMax?: number
   currency?: string
@@ -71,6 +72,9 @@ export function RoommateCard({ listing, onViewDetails, onExpressInterest, expres
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
               <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-blue-600" /> {locationLabel}</span>
+              {listing.exactAddress && (
+                <span className="text-gray-700">{listing.exactAddress}</span>
+              )}
               {listing.moveInEarliest && (
                 <span className="inline-flex items-center gap-1"><Calendar className="w-4 h-4 text-gray-500" /> Move-in by {listing.moveInEarliest}</span>
               )}

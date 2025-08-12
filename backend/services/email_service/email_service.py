@@ -341,12 +341,8 @@ class EmailTemplates:
                     
                     <div style="text-align: center; margin: 30px 0;">
                         <a href="{{ frontend_url }}/rides" 
-                           style="background: #3b82f6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; margin: 0 10px;">
+                           style="background: #3b82f6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600;">
                             🔍 Find Another Ride
-                        </a>
-                        <a href="{{ frontend_url }}/rides/create" 
-                           style="background: #10b981; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; margin: 0 10px;">
-                            ➕ Create New Ride
                         </a>
                     </div>
                     
@@ -373,7 +369,6 @@ class EmailTemplates:
         Time: {{ ride_details.time }}
         
         Find another ride: {{ frontend_url }}/rides
-        Create new ride: {{ frontend_url }}/rides/create
         
         Don't worry! There are always more rides available.
         
@@ -532,6 +527,53 @@ class EmailTemplates:
         Budget: {{ listing_details.budget }}
 
         View updated listing: {{ frontend_url }}/roommates/my-interests
+        """)
+        html_content = html_template.render(listing_details=listing_details, frontend_url=frontend_url)
+        text_content = text_template.render(listing_details=listing_details, frontend_url=frontend_url)
+        return subject, html_content, text_content
+
+    @staticmethod
+    def roommate_cancelled_notification(student_name: str, listing_details: dict, frontend_url: str) -> tuple:
+        subject = "CampusShare - ❌ Roommate Listing Cancelled"
+        html_template = Template("""
+        <!DOCTYPE html>
+        <html>
+        <body style="margin:0;padding:0;font-family:Arial, sans-serif;background-color:#f8fafc;">
+          <div style="max-width:600px;margin:0 auto;background-color:white;">
+            <div style="background:linear-gradient(135deg,#ef4444 0%, #dc2626 100%);padding:30px 20px;text-align:center;">
+              <h1 style="margin:0;color:white;font-size:28px;">🏠 CampusShare</h1>
+              <p style="margin:10px 0 0 0;color:#fecaca;font-size:16px;">Roommate listing cancellation notice</p>
+            </div>
+            <div style="padding:40px 30px;">
+              <h2 style="color:#991b1b;">❌ Listing Cancelled</h2>
+              <p>Unfortunately, a roommate listing you were interested in has been cancelled.</p>
+              <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
+                <h3>📋 Cancelled Listing Details</h3>
+                <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+              </div>
+              <div style="text-align:center;margin:30px 0;">
+                <a href="{{ frontend_url }}/roommates" 
+                   style="background:#3b82f6;color:white;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">
+                  🔍 Find Another Listing
+                </a>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+        """)
+        text_template = Template("""
+        CampusShare - Roommate Listing Cancelled ❌
+
+        A roommate listing you were interested in has been cancelled.
+
+        Location: {{ listing_details.location }}
+        Move-in: {{ listing_details.moveIn }}
+        Budget: {{ listing_details.budget }}
+
+        Find another listing: {{ frontend_url }}/roommates
         """)
         html_content = html_template.render(listing_details=listing_details, frontend_url=frontend_url)
         text_content = text_template.render(listing_details=listing_details, frontend_url=frontend_url)

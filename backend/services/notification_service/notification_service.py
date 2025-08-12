@@ -30,6 +30,49 @@ def create_notification(user_id, type, title, message, related_id=None):
         print(f"Error creating notification: {e}")
         return False
 
+# -----------------------------
+# Internal helpers (no API change)
+# -----------------------------
+
+def _run_in_background(func):
+    """Run a callable in a daemon thread; fallback to inline if threading fails."""
+    try:
+        threading.Thread(target=func, daemon=True).start()
+    except Exception:
+        func()
+
+def _send_email_safe(to_email: str, to_name: str, subject: str, html_content: str, text_content: str | None = None):
+    """Send email and swallow exceptions to avoid breaking request flow."""
+    try:
+        email_service.send_email(to_email=to_email, to_name=to_name, subject=subject, html_content=html_content, text_content=text_content)
+    except Exception as e:
+        print(f"Error sending email to {to_email}: {e}")
+
+def _send_bulk_emails_async(recipients: list[dict], build_content):
+    """Send a batch of templated emails asynchronously in one background task.
+
+    recipients: list of { 'email': str, 'name': str }
+    build_content: callable(recipient_dict) -> (subject, html_content, text_content)
+    """
+    if not recipients:
+        return
+
+    def _job():
+        for recipient in recipients:
+            try:
+                subject, html_content, text_content = build_content(recipient)
+                _send_email_safe(
+                    to_email=recipient.get('email', ''),
+                    to_name=recipient.get('name', ''),
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                )
+            except Exception as e:
+                print(f"Error preparing/sending email to {recipient.get('email', '')}: {e}")
+
+    _run_in_background(_job)
+
 def create_ride_interest_notification(ride_id, interested_user_id, ride_details):
     """Create notification for ride interest"""
     users = get_collection('users')
@@ -46,35 +89,21 @@ def create_ride_interest_notification(ride_id, interested_user_id, ride_details)
     
     # Send email notification asynchronously
     if notification_created:
-        def _send_email_async():
-            try:
-                ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
-                if ride_owner and ride_owner.get('email'):
-                    ride_email_details = {
-                        'source': ride_details.get('startingFrom', ''),
-                        'destination': ride_details.get('goingTo', ''),
-                        'date': ride_details.get('travelDate', ''),
-                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
-                    }
-                    frontend_url = os.getenv('FRONTEND_URL')
-                    subject, html_content, text_content = EmailTemplates.ride_interest_notification(
-                        interested_user['name'], 
-                        ride_email_details,
-                        frontend_url
-                    )
-                    email_service.send_email(
-                        to_email=ride_owner['email'],
-                        to_name=ride_owner['name'],
-                        subject=subject,
-                        html_content=html_content,
-                        text_content=text_content
-                    )
-            except Exception as e:
-                print(f"Error sending ride interest email: {e}")
-        try:
-            threading.Thread(target=_send_email_async, daemon=True).start()
-        except Exception:
-            _send_email_async()
+        ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
+        if ride_owner and ride_owner.get('email'):
+            recipients = [{ 'email': ride_owner['email'], 'name': ride_owner.get('name','') }]
+            def _build(_r):
+                ride_email_details = {
+                    'source': ride_details.get('startingFrom', ''),
+                    'destination': ride_details.get('goingTo', ''),
+                    'date': ride_details.get('travelDate', ''),
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                }
+                frontend_url = os.getenv('FRONTEND_URL')
+                return EmailTemplates.ride_interest_notification(
+                    interested_user.get('name',''), ride_email_details, frontend_url
+                )
+            _send_bulk_emails_async(recipients, _build)
     
     return notification_created
 
@@ -94,35 +123,21 @@ def create_ride_interest_removed_notification(ride_id, removed_user_id, ride_det
     
     # Send email notification asynchronously
     if notification_created:
-        def _send_email_async():
-            try:
-                ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
-                if ride_owner and ride_owner.get('email'):
-                    ride_email_details = {
-                        'source': ride_details.get('startingFrom', ''),
-                        'destination': ride_details.get('goingTo', ''),
-                        'date': ride_details.get('travelDate', ''),
-                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
-                    }
-                    frontend_url = os.getenv('FRONTEND_URL')
-                    subject, html_content, text_content = EmailTemplates.interest_removed_notification(
-                        removed_user['name'], 
-                        ride_email_details,
-                        frontend_url
-                    )
-                    email_service.send_email(
-                        to_email=ride_owner['email'],
-                        to_name=ride_owner['name'],
-                        subject=subject,
-                        html_content=html_content,
-                        text_content=text_content
-                    )
-            except Exception as e:
-                print(f"Error sending interest removed email: {e}")
-        try:
-            threading.Thread(target=_send_email_async, daemon=True).start()
-        except Exception:
-            _send_email_async()
+        ride_owner = users.find_one({'_id': ObjectId(ride_details['userId'])})
+        if ride_owner and ride_owner.get('email'):
+            recipients = [{ 'email': ride_owner['email'], 'name': ride_owner.get('name','') }]
+            def _build(_r):
+                ride_email_details = {
+                    'source': ride_details.get('startingFrom', ''),
+                    'destination': ride_details.get('goingTo', ''),
+                    'date': ride_details.get('travelDate', ''),
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                }
+                frontend_url = os.getenv('FRONTEND_URL')
+                return EmailTemplates.interest_removed_notification(
+                    removed_user.get('name',''), ride_email_details, frontend_url
+                )
+            _send_bulk_emails_async(recipients, _build)
     
     return notification_created
 
@@ -139,35 +154,21 @@ def create_roommate_interest_notification(post_id, interested_user_id, listing_d
         message=f"{interested_user['name']} is interested in your roommate listing in {listing_details.get('location','')}",
         related_id=post_id
     )
-    # Send email notification to listing owner using consistent template (async to avoid blocking response)
-    def _send_email_async():
-        try:
-            listing_owner = users.find_one({'_id': ObjectId(listing_details['userId'])})
-            if listing_owner and listing_owner.get('email'):
-                frontend_url = os.getenv('FRONTEND_URL') or ''
-                listing_info = {
-                    'location': listing_details.get('location', ''),
-                    'moveIn': listing_details.get('moveInEarliest', ''),
-                    'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
-                }
-                subject, html_content, text_content = EmailTemplates.roommate_interest_notification(
-                    interested_user.get('name','A student'), listing_info, frontend_url
-                )
-                email_service.send_email(
-                    to_email=listing_owner['email'],
-                    to_name=listing_owner.get('name',''),
-                    subject=subject,
-                    html_content=html_content,
-                    text_content=text_content
-                )
-        except Exception as e:
-            print(f"Error sending roommate interest email: {e}")
-
-    try:
-        threading.Thread(target=_send_email_async, daemon=True).start()
-    except Exception as e:
-        # Fallback to inline send if threading fails
-        _send_email_async()
+    # Send email notification to listing owner using consistent template
+    listing_owner = users.find_one({'_id': ObjectId(listing_details['userId'])})
+    if listing_owner and listing_owner.get('email'):
+        recipients = [{ 'email': listing_owner['email'], 'name': listing_owner.get('name','') }]
+        def _build(_r):
+            frontend_url = os.getenv('FRONTEND_URL') or ''
+            listing_info = {
+                'location': listing_details.get('location', ''),
+                'moveIn': listing_details.get('moveInEarliest', ''),
+                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+            }
+            return EmailTemplates.roommate_interest_notification(
+                interested_user.get('name','A student'), listing_info, frontend_url
+            )
+        _send_bulk_emails_async(recipients, _build)
     
     return notification_created
 
@@ -184,28 +185,22 @@ def create_roommate_interest_removed_notification(post_id, removed_user_id, list
         message=f"{removed_user['name']} is no longer interested in your roommate listing",
         related_id=post_id
     )
-    # Email
-    try:
+    # Email (async)
+    if success:
         listing_owner = users.find_one({'_id': ObjectId(listing_details['userId'])})
         if listing_owner and listing_owner.get('email'):
-            frontend_url = os.getenv('FRONTEND_URL') or ''
-            details = {
-                'location': listing_details.get('location','N/A'),
-                'moveIn': listing_details.get('moveInEarliest','N/A'),
-                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
-            }
-            subject, html_content, text_content = EmailTemplates.roommate_interest_removed_notification(
-                removed_user.get('name','A student'), details, frontend_url
-            )
-            email_service.send_email(
-                to_email=listing_owner['email'],
-                to_name=listing_owner.get('name',''),
-                subject=subject,
-                html_content=html_content,
-                text_content=text_content
-            )
-    except Exception as e:
-        print(f"Error sending roommate interest removed email: {e}")
+            recipients = [{ 'email': listing_owner['email'], 'name': listing_owner.get('name','') }]
+            def _build(_r):
+                frontend_url = os.getenv('FRONTEND_URL') or ''
+                details = {
+                    'location': listing_details.get('location','N/A'),
+                    'moveIn': listing_details.get('moveInEarliest','N/A'),
+                    'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+                }
+                return EmailTemplates.roommate_interest_removed_notification(
+                    removed_user.get('name','A student'), details, frontend_url
+                )
+            _send_bulk_emails_async(recipients, _build)
 
     return success
 
@@ -215,6 +210,7 @@ def create_roommate_update_notification(post_id, listing_details):
     interests = get_collection('roommate_interests')
     users = get_collection('users')
     notifications_created = 0
+    recipients = []
     for interest in interests.find({'postId': post_id, 'status': 'interested'}):
         # In-app
         ok = create_notification(
@@ -226,20 +222,24 @@ def create_roommate_update_notification(post_id, listing_details):
         )
         if ok:
             notifications_created += 1
-            # Email using consistent template
+            # Collect recipient for async email
             try:
                 u = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
                 if u and u.get('email'):
-                    frontend_url = os.getenv('FRONTEND_URL') or ''
-                    details = {
-                        'location': listing_details.get('location',''),
-                        'moveIn': listing_details.get('moveInEarliest',''),
-                        'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
-                    }
-                    subject, html_content, text_content = EmailTemplates.roommate_updated_notification(details, frontend_url)
-                    email_service.send_email(u['email'], u.get('name',''), subject, html_content, text_content)
+                    recipients.append({'email': u['email'], 'name': u.get('name','')})
             except Exception as e:
-                print(f"Error sending roommate update email: {e}")
+                print(f"Error preparing roommate update email: {e}")
+    # Send emails asynchronously in one background job
+    if recipients:
+        def _build(r):
+            frontend_url = os.getenv('FRONTEND_URL') or ''
+            details = {
+                'location': listing_details.get('location',''),
+                'moveIn': listing_details.get('moveInEarliest',''),
+                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+            }
+            return EmailTemplates.roommate_updated_notification(details, frontend_url)
+        _send_bulk_emails_async(recipients, _build)
     return notifications_created
 
 def create_ride_update_notification(ride_id, ride_details):
@@ -249,6 +249,7 @@ def create_ride_update_notification(ride_id, ride_details):
     users = get_collection('users')
     
     notifications_created = 0
+    recipients = []
     for interest in interested_users:
         # Create in-app notification
         success = create_notification(
@@ -261,38 +262,27 @@ def create_ride_update_notification(ride_id, ride_details):
         
         if success:
             notifications_created += 1
-            
-            # Send email notification
+            # Collect recipient for async email
             try:
                 interested_user = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
                 if interested_user and interested_user.get('email'):
-                    # Prepare ride details for email
-                    ride_email_details = {
-                        'source': ride_details.get('startingFrom', ''),
-                        'destination': ride_details.get('goingTo', ''),
-                        'date': ride_details.get('travelDate', ''),
-                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
-                    }
-                    
-                    # For ride updates, we need to determine which fields were updated
-                    updated_fields = ['ride details']  # Generic for now - could be more specific
-                    
-                    frontend_url = os.getenv('FRONTEND_URL')
-                    subject, html_content, text_content = EmailTemplates.ride_updated_notification(
-                        interested_user['name'], 
-                        ride_email_details,
-                        updated_fields,
-                        frontend_url
-                    )
-                    email_service.send_email(
-                        to_email=interested_user['email'],
-                        to_name=interested_user['name'],
-                        subject=subject,
-                        html_content=html_content,
-                        text_content=text_content
-                    )
+                    recipients.append({'email': interested_user['email'], 'name': interested_user.get('name','')})
             except Exception as e:
-                print(f"Error sending ride update email to {interest['interestedUserId']}: {e}")
+                print(f"Error preparing ride update email for {interest['interestedUserId']}: {e}")
+    if recipients:
+        def _build(r):
+            ride_email_details = {
+                'source': ride_details.get('startingFrom', ''),
+                'destination': ride_details.get('goingTo', ''),
+                'date': ride_details.get('travelDate', ''),
+                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+            }
+            updated_fields = ['ride details']
+            frontend_url = os.getenv('FRONTEND_URL')
+            return EmailTemplates.ride_updated_notification(
+                r.get('name',''), ride_email_details, updated_fields, frontend_url
+            )
+        _send_bulk_emails_async(recipients, _build)
     
     return notifications_created
 
@@ -303,6 +293,7 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
     users = get_collection('users')
     
     notifications_created = 0
+    recipients = []
     for interest in interested_users:
         # Create in-app notification
         success = create_notification(
@@ -315,35 +306,66 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
         
         if success:
             notifications_created += 1
-            
-            # Send email notification
+            # Collect recipient for async email
             try:
                 interested_user = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
                 if interested_user and interested_user.get('email'):
-                    # Prepare ride details for email
-                    ride_email_details = {
-                        'source': ride_details.get('startingFrom', ''),
-                        'destination': ride_details.get('goingTo', ''),
-                        'date': ride_details.get('travelDate', ''),
-                        'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
-                    }
-                    
-                    frontend_url = os.getenv('FRONTEND_URL')
-                    subject, html_content, text_content = EmailTemplates.ride_cancelled_notification(
-                        interested_user['name'], 
-                        ride_email_details,
-                        frontend_url
-                    )
-                    email_service.send_email(
-                        to_email=interested_user['email'],
-                        to_name=interested_user['name'],
-                        subject=subject,
-                        html_content=html_content,
-                        text_content=text_content
-                    )
+                    recipients.append({'email': interested_user['email'], 'name': interested_user.get('name','')})
             except Exception as e:
-                print(f"Error sending ride cancellation email to {interest['interestedUserId']}: {e}")
+                print(f"Error preparing ride cancellation email for {interest['interestedUserId']}: {e}")
+    if recipients:
+        def _build(r):
+            ride_email_details = {
+                'source': ride_details.get('startingFrom', ''),
+                'destination': ride_details.get('goingTo', ''),
+                'date': ride_details.get('travelDate', ''),
+                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+            }
+            frontend_url = os.getenv('FRONTEND_URL')
+            return EmailTemplates.ride_cancelled_notification(
+                r.get('name',''), ride_email_details, frontend_url
+            )
+        _send_bulk_emails_async(recipients, _build)
     
+    return notifications_created
+
+def create_roommate_cancellation_notification(post_id, listing_details):
+    """Create notifications for roommate listing cancellation (parity with rides)."""
+    interests = get_collection('roommate_interests')
+    users = get_collection('users')
+    notifications_created = 0
+
+    recipients = []
+    for interest in interests.find({'postId': post_id, 'status': 'interested'}):
+        # In-app notification
+        success = create_notification(
+            user_id=interest['interestedUserId'],
+            type='roommate_cancelled',
+            title='Roommate Listing Cancelled',
+            message='A roommate listing you were interested in has been cancelled',
+            related_id=post_id
+        )
+        if success:
+            notifications_created += 1
+            try:
+                u = users.find_one({'_id': ObjectId(interest['interestedUserId'])})
+                if u and u.get('email'):
+                    recipients.append({'email': u['email'], 'name': u.get('name','')})
+            except Exception as e:
+                print(f"Error preparing roommate cancellation email: {e}")
+
+    # Send emails asynchronously in one background job
+    if recipients:
+        def _build(r):
+            frontend_url = os.getenv('FRONTEND_URL') or ''
+            details = {
+                'location': listing_details.get('location',''),
+                'moveIn': listing_details.get('moveInEarliest',''),
+                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+            }
+            return EmailTemplates.roommate_cancelled_notification('', details, frontend_url)
+        _send_bulk_emails_async(recipients, _build)
+
     return notifications_created
 
 def get_user_notifications(user_id, page=1, per_page=20, unread_only=False):

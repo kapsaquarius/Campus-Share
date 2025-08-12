@@ -105,10 +105,27 @@ export default function MyRidesPage() {
     
     const newErrors: Record<string, string> = {};
 
-    // Time validation
+    // Required fields
+    if (!editFormData.startingFrom || editFormData.startingFrom.trim().length === 0) {
+      newErrors.startingFrom = "Starting location is required";
+    }
+    if (!editFormData.goingTo || editFormData.goingTo.trim().length === 0) {
+      newErrors.goingTo = "Destination is required";
+    }
+
+    // Time validation (both directions)
     if (editFormData.departureStartTime && editFormData.departureEndTime) {
       if (editFormData.departureStartTime > editFormData.departureEndTime) {
+        newErrors.departureStartTime = "Earliest start time cannot be later than latest start time";
         newErrors.departureEndTime = "Latest start time cannot be earlier than earliest start time";
+      }
+    } else if (editFormData.departureStartTime || editFormData.departureEndTime) {
+      // If one is provided, both are required
+      if (!editFormData.departureStartTime) {
+        newErrors.departureStartTime = "Preferred earliest start time is required";
+      }
+      if (!editFormData.departureEndTime) {
+        newErrors.departureEndTime = "Preferred latest start time is required";
       }
     }
 
@@ -120,7 +137,9 @@ export default function MyRidesPage() {
     }
 
     // Travel date validation (allow past date if it's the original date)
-    if (editFormData.travelDate && editFormData.travelDate < getTodayStart()) {
+    if (!editFormData.travelDate) {
+      newErrors.travelDate = "Travel date is required";
+    } else if (editFormData.travelDate < getTodayStart()) {
       if (!isSameDay(editFormData.travelDate as Date, originalTravelDate)) {
         newErrors.travelDate = "Travel date cannot be in the past";
       }
@@ -147,11 +166,11 @@ export default function MyRidesPage() {
     }
     
     try {
-      const response = await apiService.getMyRides(token);
+      const response = await apiService.getMyRides(token as string);
 
       if (!response.error) {
-        const data = response.data || {};
-        setRides(data.rides || []);
+        const data: any = response.data || {};
+        setRides((data.rides as Ride[]) || []);
       } else {
         toast({
           title: "Error",
@@ -275,7 +294,9 @@ export default function MyRidesPage() {
     setValidSelections(prev => ({ ...prev, [field]: false }));
     
     // Clear field-specific error when user starts typing
-    if (editErrors[field]) {
+    if (value.trim().length === 0) {
+      setEditErrors(prev => ({ ...prev, [field]: field === 'startingFrom' ? 'Starting location is required' : 'Destination is required' }));
+    } else if (editErrors[field]) {
       setEditErrors(prev => ({ ...prev, [field]: '' }));
     }
     
@@ -471,7 +492,7 @@ export default function MyRidesPage() {
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                               <div className="space-y-2">
-                                <Label>Starting From</Label>
+                                <Label>Starting From <span className="text-red-500">*</span></Label>
                                 <div className="relative">
                                   <Input
                                     value={editFormData.startingFrom}
@@ -504,7 +525,7 @@ export default function MyRidesPage() {
                               </div>
 
                               <div className="space-y-2">
-                                <Label>Going To</Label>
+                                <Label>Going To <span className="text-red-500">*</span></Label>
                                 <div className="relative">
                                   <Input
                                     value={editFormData.goingTo}
@@ -538,7 +559,7 @@ export default function MyRidesPage() {
                             </div>
 
                             <div className="space-y-2">
-                              <Label>Travel Date</Label>
+                              <Label>Travel Date <span className="text-red-500">*</span></Label>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
@@ -573,14 +594,15 @@ export default function MyRidesPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label>Preferred Earliest Start Time</Label>
-                                <TimeInput
+                                <Label>Preferred Earliest Start Time <span className="text-red-500">*</span></Label>
+                                  <TimeInput
                                   value={editFormData.departureStartTime}
                                   onChange={(value) => {
                                     setEditFormData(prev => ({ ...prev, departureStartTime: value }));
-                                    if (editErrors.departureStartTime) {
-                                      setEditErrors(prev => ({ ...prev, departureStartTime: '' }));
-                                    }
+                                      setEditErrors(prev => ({
+                                        ...prev,
+                                        departureStartTime: (value || '').trim().length === 0 ? 'Preferred earliest start time is required' : ''
+                                      }));
                                   }}
                                   placeholder="Start time"
                                   className={editErrors.departureStartTime ? 'border-red-500' : ''}
@@ -591,14 +613,15 @@ export default function MyRidesPage() {
                               </div>
 
                               <div className="space-y-2">
-                                <Label>Preferred Latest Start Time</Label>
-                                <TimeInput
+                                <Label>Preferred Latest Start Time <span className="text-red-500">*</span></Label>
+                                  <TimeInput
                                   value={editFormData.departureEndTime}
                                   onChange={(value) => {
                                     setEditFormData(prev => ({ ...prev, departureEndTime: value }));
-                                    if (editErrors.departureEndTime) {
-                                      setEditErrors(prev => ({ ...prev, departureEndTime: '' }));
-                                    }
+                                      setEditErrors(prev => ({
+                                        ...prev,
+                                        departureEndTime: (value || '').trim().length === 0 ? 'Preferred latest start time is required' : ''
+                                      }));
                                   }}
                                   placeholder="End time"
                                   className={editErrors.departureEndTime ? 'border-red-500' : ''}
@@ -684,13 +707,7 @@ export default function MyRidesPage() {
                                 Cancel
                               </Button>
                             </div>
-                            {!isEditFormValid() && !isUpdating && (
-                              <div className="mt-2 text-center">
-                                <p className="text-sm text-gray-600">
-                                  Please fill all required fields and fix any validation errors
-                                </p>
-                              </div>
-                            )}
+                            {/* Field-level validation messages are shown inline; removing global helper text */}
                           </div>
                         </DialogContent>
                       </Dialog>

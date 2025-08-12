@@ -408,14 +408,26 @@ def get_my_rides():
         
         rides = list(ride_posts.find(query).sort('createdAt', -1))
         
+        # Aggregate interest counts in one pipeline (parity with roommates)
+        ride_interests = get_collection('ride_interests')
+        ride_ids = [r['_id'] for r in rides]
+        counts_map = {str(_id): 0 for _id in ride_ids}
+        if ride_ids:
+            try:
+                pipeline = [
+                    {'$match': {'rideId': {'$in': ride_ids}, 'status': 'interested'}},
+                    {'$group': {'_id': '$rideId', 'count': {'$sum': 1}}}
+                ]
+                for c in ride_interests.aggregate(pipeline):
+                    counts_map[str(c['_id'])] = c['count']
+            except Exception:
+                # Fallback handled by default zeros
+                pass
+
         formatted_rides = []
         for ride in rides:
-            # Get interest count
-            ride_interests = get_collection('ride_interests')
-            interest_count = ride_interests.count_documents({'rideId': ride['_id']})
-            
             formatted_ride = format_object_id(ride)
-            formatted_ride['interestCount'] = interest_count
+            formatted_ride['interestCount'] = counts_map.get(str(ride['_id']), 0)
             formatted_rides.append(formatted_ride)
         
         return jsonify({'rides': formatted_rides}), 200

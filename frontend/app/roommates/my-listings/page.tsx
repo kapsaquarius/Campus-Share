@@ -110,6 +110,7 @@ export default function MyRoommateListingsPage() {
       _id: l._id,
       type: l.type || 'offer',
       location: typeof l.location === 'string' ? l.location : (l.location?.displayName || ''),
+      exactAddress: (l as any).exactAddress || '',
       moveInEarliest: l.moveInEarliest || '',
       budgetMin: (l.budgetMin === 0 || l.budgetMin) ? l.budgetMin : '',
       budgetMax: (l.budgetMax === 0 || l.budgetMax) ? l.budgetMax : '',
@@ -141,11 +142,18 @@ export default function MyRoommateListingsPage() {
     if (!editing.location || !validLocation) {
       errors.location = !editing.location ? 'Location is required' : 'Please select a valid location from suggestions'
     }
+    if (editing.type === 'offer' && !(editing.exactAddress || '').trim()) {
+      errors.exactAddress = 'Exact address is required'
+    }
     setEditErrors(errors)
     if (Object.keys(errors).length > 0) return
     try {
       setIsUpdating(true)
-      const payload = { ...editing, budgetMin: minVal, budgetMax: maxVal }
+      const payload: any = { ...editing, budgetMin: minVal, budgetMax: maxVal }
+      // Do not allow type change; server will ignore type if unchanged. Ensure we don't send invalid address for seekers
+      if (editing.type !== 'offer') {
+        payload.exactAddress = undefined
+      }
       const resp = await apiService.updateRoommate(token, editing._id, payload)
       if (resp.error) throw new Error(resp.error)
       toast({ title: 'Updated', description: 'Listing updated successfully.' })
@@ -235,8 +243,8 @@ export default function MyRoommateListingsPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Type</Label>
-                            <Select value={editing.type} onValueChange={(v: any) => setEditing((p: any) => ({ ...p, type: v }))}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
+                            <Select value={editing.type} disabled>
+                              <SelectTrigger className="opacity-75 cursor-not-allowed"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="offer">Offering a room</SelectItem>
                                 <SelectItem value="seek">Looking for a room</SelectItem>
@@ -304,8 +312,29 @@ export default function MyRoommateListingsPage() {
                               <p className="text-sm text-red-500 mt-1">{editErrors.location}</p>
                             )}
                           </div>
+                          {editing.type === 'offer' && (
+                            <div className="space-y-2">
+                              <Label>Exact address <span className="text-red-500">*</span></Label>
+                              <Input
+                                value={editing.exactAddress || ''}
+                                onChange={(e) => {
+                                  const v = e.target.value
+                                  setEditing((p: any) => ({ ...p, exactAddress: v }))
+                                  setEditErrors((prev) => ({
+                                    ...prev,
+                                    exactAddress: v.trim().length === 0 ? 'Exact address is required' : ''
+                                  }))
+                                }}
+                                placeholder="Full address of the place"
+                                className={editErrors.exactAddress ? 'border-red-500' : ''}
+                              />
+                              {editErrors.exactAddress && (
+                                <p className="text-sm text-red-500 mt-1">{editErrors.exactAddress}</p>
+                              )}
+                            </div>
+                          )}
                           <div className="space-y-2">
-                            <Label>Move-in</Label>
+                            <Label>Move-in <span className="text-red-500">*</span></Label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-start">
@@ -442,7 +471,15 @@ export default function MyRoommateListingsPage() {
                             <Textarea value={editing.additionalDetails} onChange={(e) => setEditing((p: any) => ({ ...p, additionalDetails: e.target.value }))} />
                           </div>
                           <div className="md:col-span-2 flex gap-2 pt-2">
-                            <Button onClick={saveEdit} disabled={isUpdating || !!editErrors.budgetMax || !!editErrors.budgetMissing || !!editErrors.location || !validLocation || !editing.location} className="flex-1">
+                            <Button onClick={saveEdit} disabled={
+                              isUpdating ||
+                              !!editErrors.budgetMax ||
+                              !!editErrors.budgetMissing ||
+                              !!editErrors.location ||
+                              !validLocation ||
+                              !editing.location ||
+                              (editing?.type === 'offer' && !(editing?.exactAddress || '').trim())
+                            } className="flex-1">
                               {isUpdating ? (
                                 <>
                                   <Loader2 className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
@@ -494,6 +531,12 @@ export default function MyRoommateListingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(l as any).exactAddress && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">{(l as any).exactAddress}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">{l.moveInEarliest ? `Move-in: ${formatDate((l as any).moveInEarliest)}` : 'Move-in flexible'}</span>

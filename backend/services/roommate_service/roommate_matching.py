@@ -202,23 +202,36 @@ def search_roommates_with_scoring(criteria: Dict[str, Any], user_id: str | None 
         # moveInEarliest stored as 'YYYY-MM-DD' string in DB
         query['moveInEarliest'] = { '$gte': criteria['moveInStart'], '$lte': criteria['moveInEnd'] }
 
-    # Exclude user's own posts
+    # Exclude user's own posts and already-interested listings via query
+    from bson import ObjectId
     if user_id:
-        from bson import ObjectId
         query['userId'] = { '$ne': ObjectId(user_id) }
+        # Pre-fetch interested post IDs and push into query to avoid Python-side filtering
+        interests = get_collection('roommate_interests')
+        interested_ids = [doc['postId'] for doc in interests.find({
+            'interestedUserId': ObjectId(user_id),
+            'status': 'interested'
+        }, {'postId': 1})]
+        if interested_ids:
+            query['_id'] = { '$nin': interested_ids }
 
     candidates = list(posts.find(query))
 
-    # Exclude listings the user already expressed interest in (parity with rides)
-    if user_id and candidates:
-        from bson import ObjectId
-        interests = get_collection('roommate_interests')
-        user_interests = interests.find({
-            'interestedUserId': ObjectId(user_id),
-            'status': 'interested'
-        }, {'postId': 1})
-        interested_ids = {str(doc['postId']) for doc in user_interests}
-        candidates = [c for c in candidates if str(c['_id']) not in interested_ids]
+    # Precompute popularity counts for all candidates in one aggregation
+    if candidates:
+        candidate_ids = [c['_id'] for c in candidates]
+        roommate_interests = get_collection('roommate_interests')
+        try:
+            pipeline = [
+                { '$match': { 'postId': { '$in': candidate_ids }, 'status': 'interested' } },
+                { '$group': { '_id': '$postId', 'count': { '$sum': 1 } } }
+            ]
+            counts = list(roommate_interests.aggregate(pipeline))
+            counts_map = { c['_id']: c['count'] for c in counts }
+        except Exception:
+            counts_map = {}
+        for c in candidates:
+            c['interestCount'] = counts_map.get(c['_id'], 0)
 
     # Score and sort
     scored: List[Dict[str, Any]] = []
