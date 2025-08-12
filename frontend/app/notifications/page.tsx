@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ProtectedRoute } from "@/components/common/protected-route"
 import { useNotifications } from "@/contexts/notification-context"
 import { RideDetailsModal } from "@/components/RideDetailsModal"
+import { RoommateDetailsModal } from "@/components/roommates/RoommateDetailsModal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +14,7 @@ import { format } from "date-fns"
 export default function NotificationsPage() {
   const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
   const [selectedRideId, setSelectedRideId] = useState<string | null>(null)
+  const [selectedRoommateId, setSelectedRoommateId] = useState<string | null>(null)
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -21,6 +23,10 @@ export default function NotificationsPage() {
       case "ride_update":
       case "ride_cancellation":
         return <Car className="w-5 h-5 text-blue-600" />
+      case "roommate_interest":
+      case "roommate_interest_removed":
+      case "roommate_update":
+        return <Home className="w-5 h-5 text-green-600" />
       default:
         return <Bell className="w-5 h-5 text-gray-600" />
     }
@@ -29,6 +35,12 @@ export default function NotificationsPage() {
   const handleViewRideDetails = (notification: any) => {
     if (notification.type === 'ride_update' && notification.relatedId) {
       setSelectedRideId(notification.relatedId)
+    }
+  }
+
+  const handleViewRoommateDetails = (notification: any) => {
+    if (notification.type === 'roommate_update' && notification.relatedId) {
+      setSelectedRoommateId(notification.relatedId)
     }
   }
 
@@ -86,12 +98,12 @@ export default function NotificationsPage() {
                               </div>
                             </div>
                             <div className="flex gap-2 ml-4">
-                              {notification.type === 'ride_update' && (
+                              {(notification.type === 'ride_update' || notification.type === 'roommate_update') && (
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
-                                  onClick={() => handleViewRideDetails(notification)}
-                                  title="View ride details"
+                                  onClick={() => notification.type === 'ride_update' ? handleViewRideDetails(notification) : handleViewRoommateDetails(notification)}
+                                  title="View details"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
@@ -118,6 +130,13 @@ export default function NotificationsPage() {
           isOpen={!!selectedRideId}
           onClose={() => setSelectedRideId(null)}
           rideId={selectedRideId}
+        />
+      )}
+      {selectedRoommateId && (
+        <RoommateDetailsModal
+          isOpen={!!selectedRoommateId}
+          onClose={() => setSelectedRoommateId(null)}
+          listingId={selectedRoommateId}
         />
       )}
     </ProtectedRoute>

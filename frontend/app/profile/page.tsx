@@ -413,7 +413,7 @@ export default function ProfilePage() {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                   <div className="mb-4">
                     <p className="text-sm text-red-800">
-                      Once you delete your account, there is no going back. This will permanently delete your account, all your rides, interests, and notifications.
+                      Once you delete your account, there is no going back. This will permanently delete your account, all your rides, roommate listings, all interests, and notifications.
                     </p>
                   </div>
                   
@@ -442,10 +442,12 @@ export default function ProfilePage() {
                         <br />
                         • Your account profile
                         <br />
-                        • All ride posts you've created
+                          • All ride posts you've created
                         <br />
-                        • All ride interests you've expressed
+                          • All roommate listings you've created
                         <br />
+                          • All ride and roommate interests you've expressed
+                          <br />
                         <br />
                         <strong>This action is irreversible.</strong>
                       </AlertDialogDescription>

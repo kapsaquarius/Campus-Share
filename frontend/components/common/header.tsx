@@ -9,8 +9,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import {
   Sheet,
@@ -20,7 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Bell, Car, User, LogOut, Plus, Heart, Search, Menu } from "lucide-react"
+import { Bell, Car, User, LogOut, Plus, Heart, Search, Menu, Users, Home } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { useState } from "react"
 
@@ -82,20 +82,10 @@ export function Header() {
                   <Search className="w-4 h-4" />
                   <span>Find Rides</span>
                 </Link>
-                
-                <Link href="/rides/create" className={getNavLinkClassName("/rides/create")}>
-                  <Plus className="w-4 h-4" />
-                  <span>Create Ride</span>
-                </Link>
-                
-                <Link href="/rides/my-rides" className={getNavLinkClassName("/rides/my-rides")}>
-                  <Car className="w-4 h-4" />
-                  <span>My Rides</span>
-                </Link>
-                
-                <Link href="/rides/my-interested" className={getNavLinkClassName("/rides/my-interested")}>
-                  <Heart className="w-4 h-4" />
-                  <span>My Interested Rides</span>
+
+                <Link href="/roommates" className={getNavLinkClassName("/roommates")}>
+                  <Users className="w-4 h-4" />
+                  <span>Find Roommates</span>
                 </Link>
               </>
             )}
@@ -130,13 +120,53 @@ export function Header() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
+                      {/* Rides actions */}
+                      <DropdownMenuLabel className="text-xs uppercase tracking-wide text-gray-400">Rides</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href="/rides/create" className="flex items-center space-x-2">
+                          <Plus className="w-4 h-4" />
+                          <span>Create Ride</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/rides/my-rides" className="flex items-center space-x-2">
+                          <Car className="w-4 h-4" />
+                          <span>My Rides</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/rides/my-interested" className="flex items-center space-x-2">
+                          <Heart className="w-4 h-4" />
+                          <span>My Interested Rides</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      {/* Roommates actions */}
+                      <DropdownMenuLabel className="pt-2 text-xs uppercase tracking-wide text-gray-400">Roommates</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href="/roommates/create" className="flex items-center space-x-2">
+                          <Plus className="w-4 h-4" />
+                          <span>Create Listing</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/roommates/my-listings" className="flex items-center space-x-2">
+                          <Users className="w-4 h-4" />
+                          <span>My Roommate Listings</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/roommates/my-matches" className="flex items-center space-x-2">
+                          <Users className="w-4 h-4" />
+                          <span>My Roommate Interests</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuLabel className="pt-2 text-xs uppercase tracking-wide text-gray-400">Account</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
                         <Link href="/profile" className="flex items-center space-x-2">
                           <User className="w-4 h-4" />
                           <span>Profile</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2">
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
@@ -158,7 +188,7 @@ export function Header() {
                         <SheetTitle>Menu</SheetTitle>
                         <SheetDescription>Navigate to different sections</SheetDescription>
                       </SheetHeader>
-                      <div className="mt-6 space-y-2">
+                       <div className="mt-6 space-y-2">
                         <Link 
                           href="/rides" 
                           className={getMobileNavLinkClassName("/rides")}
@@ -167,35 +197,68 @@ export function Header() {
                           <Search className="w-5 h-5" />
                           <span>Find Rides</span>
                         </Link>
-                        
-                        <Link 
-                          href="/rides/create" 
-                          className={getMobileNavLinkClassName("/rides/create")}
-                          onClick={closeMobileMenu}
-                        >
-                          <Plus className="w-5 h-5" />
-                          <span>Create Ride</span>
-                        </Link>
-                        
-                        <Link 
-                          href="/rides/my-rides" 
-                          className={getMobileNavLinkClassName("/rides/my-rides")}
-                          onClick={closeMobileMenu}
-                        >
-                          <Car className="w-5 h-5" />
-                          <span>My Rides</span>
-                        </Link>
-                        
-                        <Link 
-                          href="/rides/my-interested" 
-                          className={getMobileNavLinkClassName("/rides/my-interested")}
-                          onClick={closeMobileMenu}
-                        >
-                          <Heart className="w-5 h-5" />
-                          <span>My Interested Rides</span>
-                        </Link>
+                         <Link 
+                           href="/roommates" 
+                           className={getMobileNavLinkClassName("/roommates")}
+                           onClick={closeMobileMenu}
+                         >
+                           <Users className="w-5 h-5" />
+                           <span>Find Roommates</span>
+                         </Link>
 
                         <div className="border-t pt-4 mt-4">
+                           <div className="px-4 pb-2 text-xs uppercase tracking-wide text-gray-400">Rides</div>
+                           <Link 
+                             href="/rides/create" 
+                             className={getMobileNavLinkClassName("/rides/create")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Plus className="w-5 h-5" />
+                             <span>Create Ride</span>
+                           </Link>
+                           <Link 
+                             href="/rides/my-rides" 
+                             className={getMobileNavLinkClassName("/rides/my-rides")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Car className="w-5 h-5" />
+                             <span>My Rides</span>
+                           </Link>
+                           <Link 
+                             href="/rides/my-interested" 
+                             className={getMobileNavLinkClassName("/rides/my-interested")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Heart className="w-5 h-5" />
+                             <span>My Interested Rides</span>
+                           </Link>
+
+                           <div className="px-4 pt-4 pb-2 text-xs uppercase tracking-wide text-gray-400">Roommates</div>
+                           <Link 
+                             href="/roommates/create" 
+                             className={getMobileNavLinkClassName("/roommates/create")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Plus className="w-5 h-5" />
+                             <span>Create Listing</span>
+                           </Link>
+                           <Link 
+                             href="/roommates/my-listings" 
+                             className={getMobileNavLinkClassName("/roommates/my-listings")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Users className="w-5 h-5" />
+                             <span>My Roommate Listings</span>
+                           </Link>
+                           <Link 
+                             href="/roommates/my-matches" 
+                             className={getMobileNavLinkClassName("/roommates/my-matches")}
+                             onClick={closeMobileMenu}
+                           >
+                             <Users className="w-5 h-5" />
+                             <span>My Roommate Interests</span>
+                           </Link>
+
                           <Link 
                             href="/profile" 
                             className={getMobileNavLinkClassName("/profile")}

@@ -9,6 +9,7 @@ from decimal import Decimal
 from routes.auth import auth_bp, verify_token
 from routes.rides import rides_bp
 from routes.notifications import notifications_bp
+from routes.roommates import roommates_bp
 
 from routes.locations import locations_bp
 
@@ -32,6 +33,7 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(rides_bp, url_prefix='/api/rides')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(locations_bp, url_prefix='/api/locations')
+app.register_blueprint(roommates_bp, url_prefix='/api/roommates')
 
 # Custom JSON encoder for ObjectId and Decimal
 class CustomJSONEncoder(json.JSONEncoder):

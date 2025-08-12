@@ -95,20 +95,34 @@ class UserService:
         return None
     
     def delete_user_and_all_data(self, user_id: str) -> bool:
-        """Delete user and all associated data (rides, interests, notifications)"""
+        """Delete user and all associated data (rides, roommates, interests, notifications)"""
         try:
             user_object_id = ObjectId(user_id)
             
             # Get references to all collections
             ride_posts = get_collection('ride_posts')
             ride_interests = get_collection('ride_interests')
+            roommate_posts = get_collection('roommate_posts')
+            roommate_interests = get_collection('roommate_interests')
             notifications = get_collection('notifications')
             
-            # Delete all ride posts created by this user
+            # Delete all ride posts created by this user and cascade delete their interests
+            ride_post_ids = [doc['_id'] for doc in ride_posts.find({"userId": user_object_id}, {"_id": 1})]
+            if ride_post_ids:
+                ride_interests.delete_many({"postId": {"$in": ride_post_ids}})
             ride_posts.delete_many({"userId": user_object_id})
             
-            # Delete all ride interests by this user
+            # Delete all ride interests expressed by this user
             ride_interests.delete_many({"userId": user_object_id})
+
+            # Delete all roommate posts created by this user and cascade delete their interests
+            rm_post_ids = [doc['_id'] for doc in roommate_posts.find({"userId": user_object_id}, {"_id": 1})]
+            if rm_post_ids:
+                roommate_interests.delete_many({"postId": {"$in": rm_post_ids}})
+            roommate_posts.delete_many({"userId": user_object_id})
+
+            # Delete all roommate interests expressed by this user
+            roommate_interests.delete_many({"interestedUserId": user_object_id})
             
             # Delete all notifications for this user
             notifications.delete_many({"userId": user_object_id})

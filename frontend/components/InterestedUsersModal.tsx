@@ -48,13 +48,15 @@ interface InterestedUsersModalProps {
     goingTo: string
     travelDate: string
   }
+  mode?: 'ride' | 'roommate'
 }
 
 export function InterestedUsersModal({ 
   isOpen, 
   onClose, 
   rideId, 
-  rideInfo 
+  rideInfo, 
+  mode = 'ride'
 }: InterestedUsersModalProps) {
   const [interestedUsers, setInterestedUsers] = useState<InterestedUser[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -75,7 +77,9 @@ export function InterestedUsersModal({
     setError(null)
     
     try {
-      const response = await apiService.getInterestedUsers(token, rideId)
+      const response = mode === 'roommate'
+        ? await apiService.getRoommateInterestedUsers(token, rideId)
+        : await apiService.getInterestedUsers(token, rideId)
       
       if (response.error) {
         setError(response.error)
@@ -139,16 +143,21 @@ export function InterestedUsersModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Interested Riders
+            {mode === 'roommate' ? 'Interested Roommates' : 'Interested Riders'}
           </DialogTitle>
-          <DialogDescription>
-            People interested in your ride from{' '}
-            <span className="font-medium">{rideInfo.startingFrom}</span> to{' '}
-            <span className="font-medium">{rideInfo.goingTo}</span> on{' '}
-            <span className="font-medium">
-              {formatDate(rideInfo.travelDate)}
-            </span>
-          </DialogDescription>
+          {mode === 'ride' ? (
+            <DialogDescription>
+              People interested in your ride from{' '}
+              <span className="font-medium">{rideInfo.startingFrom}</span> to{' '}
+              <span className="font-medium">{rideInfo.goingTo}</span> on{' '}
+              <span className="font-medium">{formatDate(rideInfo.travelDate)}</span>
+            </DialogDescription>
+          ) : (
+            <DialogDescription>
+              People interested in your listing at{' '}
+              <span className="font-medium">{rideInfo.startingFrom}</span>
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="mt-4">

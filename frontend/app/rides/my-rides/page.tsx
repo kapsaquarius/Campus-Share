@@ -56,6 +56,7 @@ export default function MyRidesPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingRideId, setDeletingRideId] = useState<string | null>(null);
+  const [originalTravelDate, setOriginalTravelDate] = useState<Date | null>(null);
   const [interestedUsersModal, setInterestedUsersModal] = useState<{
     isOpen: boolean
     rideId: string
@@ -87,6 +88,11 @@ export default function MyRidesPage() {
     return today
   }
 
+  const isSameDay = (a: Date | null, b: Date | null) => {
+    if (!a || !b) return false
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  }
+
   useEffect(() => {
     if (token) {
       fetchMyRides(true);
@@ -113,9 +119,11 @@ export default function MyRidesPage() {
       }
     }
 
-    // Travel date validation
+    // Travel date validation (allow past date if it's the original date)
     if (editFormData.travelDate && editFormData.travelDate < getTodayStart()) {
-      newErrors.travelDate = "Travel date cannot be in the past";
+      if (!isSameDay(editFormData.travelDate as Date, originalTravelDate)) {
+        newErrors.travelDate = "Travel date cannot be in the past";
+      }
     }
 
     // Seats validation
@@ -184,8 +192,8 @@ export default function MyRidesPage() {
       newErrors.goingTo = "Destination must be different from starting location"
     }
 
-    // Check if travel date is in the past
-    if (editFormData.travelDate < getTodayStart()) {
+    // Check if travel date is in the past (allow if unchanged from original)
+    if (editFormData.travelDate < getTodayStart() && !isSameDay(editFormData.travelDate as Date, originalTravelDate)) {
       newErrors.travelDate = "Travel date cannot be in the past"
     }
 
@@ -233,7 +241,7 @@ export default function MyRidesPage() {
       editFormData.availableSeats <= 8 &&
       editFormData.suggestedContribution >= 0 &&
       editFormData.suggestedContribution <= 1000 &&
-      editFormData.travelDate >= getTodayStart()
+      (editFormData.travelDate >= getTodayStart() || isSameDay(editFormData.travelDate as Date, originalTravelDate))
     )
   }
 
@@ -249,6 +257,7 @@ export default function MyRidesPage() {
       suggestedContribution: ride.suggestedContribution,
       additionalDetails: ride.additionalDetails || ''
     });
+    setOriginalTravelDate(new Date(ride.travelDate + 'T12:00:00'));
     setValidSelections({ startingFrom: true, goingTo: true });
     setEditErrors({});
     setEditDialogOpen(true);

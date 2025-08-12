@@ -230,6 +230,111 @@ class ApiService {
     })
   }
 
+  // Roommates endpoints (UI-first; backend routes to be implemented)
+  async searchRoommates(token: string, searchParams: URLSearchParams) {
+    return this.request(`/roommates/search?${searchParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async createRoommate(token: string, listingData: any) {
+    return this.request('/roommates/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(listingData),
+    })
+  }
+
+  async getRoommate(token: string, listingId: string) {
+    return this.request(`/roommates/${listingId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getRoommateInterestedUsers(token: string, listingId: string) {
+    return this.request(`/roommates/${listingId}/interested-users`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async updateRoommate(token: string, listingId: string, listingData: any) {
+    return this.request(`/roommates/${listingId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(listingData),
+    })
+  }
+
+  async deleteRoommate(token: string, listingId: string) {
+    return this.request(`/roommates/${listingId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getMyRoommateListings(token: string) {
+    return this.request('/roommates/my-listings', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getMyRoommateMatches(token: string) {
+    return this.request('/roommates/my-matches', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async getMyInterestedRoommates(token: string) {
+    return this.request('/roommates/my-interested', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async expressRoommateInterest(token: string, listingId: string) {
+    return this.request(`/roommates/${listingId}/interest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  async removeRoommateInterest(token: string, listingId: string) {
+    return this.request(`/roommates/${listingId}/interest`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
   // Notification endpoints
   async getNotifications(token: string) {
     return this.request('/notifications/', {

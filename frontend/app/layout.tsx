@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   title: "CampusShare - Student Platform for Rides",
   description: "Connect with fellow students for ride-sharing.",
   generator: 'v0.dev',
+  icons: {
+    icon: '/icon',
+    shortcut: '/icon',
+    apple: '/icon',
+  },
 }
 
 export default function RootLayout({

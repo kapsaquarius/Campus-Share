@@ -386,5 +386,156 @@ class EmailTemplates:
         
         return subject, html_content, text_content
 
+    @staticmethod
+    def roommate_interest_notification(student_name: str, listing_details: dict, frontend_url: str) -> tuple:
+        subject = f"CampusShare - 🏠 New Interest in Your Roommate Listing"
+        html_template = Template("""
+        <!DOCTYPE html>
+        <html>
+        <body style="margin:0;padding:0;font-family:Arial, sans-serif;background-color:#f8fafc;">
+          <div style="max-width:600px;margin:0 auto;background-color:white;">
+            <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:30px 20px;text-align:center;">
+              <h1 style="margin:0;color:white;font-size:28px;">🏠 CampusShare</h1>
+              <p style="margin:10px 0 0 0;color:#e2e8f0;font-size:16px;">Someone is interested in your listing!</p>
+            </div>
+            <div style="padding:40px 30px;">
+              <div style="background-color:#f1f5f9;border-left:4px solid #3b82f6;padding:20px;margin-bottom:30px;border-radius:0 8px 8px 0;">
+                <h2 style="margin:0 0 10px 0;color:#1e293b;font-size:20px;">🎉 Great News!</h2>
+                <p style="margin:0;color:#475569;font-size:16px;line-height:1.6;">
+                  <strong>{{ student_name }}</strong> is interested in your roommate listing.
+                </p>
+              </div>
+              <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin-bottom:30px;">
+                <h3 style="margin:0 0 20px 0;color:#1e293b;font-size:18px;border-bottom:2px solid #f1f5f9;padding-bottom:10px;">📋 Listing Details</h3>
+                <p style="margin:0;color:#374151;">Location: {{ listing_details.location }}</p>
+                <p style="margin:0;color:#374151;">Move-in: {{ listing_details.moveIn }}</p>
+                <p style="margin:0;color:#374151;">Budget: {{ listing_details.budget }}</p>
+              </div>
+              <div style="text-align:center;margin-bottom:30px;">
+                <a href="{{ frontend_url }}/roommates/my-listings" style="display:inline-block;background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);color:white;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:16px;">📱 View Your Listings</a>
+              </div>
+            </div>
+            <div style="background-color:#1e293b;padding:20px;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:14px;">Happy sharing! 🏠<br><strong style="color:#e2e8f0;">CampusShare Team</strong></p>
+            </div>
+          </div>
+        </body>
+        </html>
+        """)
+        text_template = Template("""
+        CampusShare - New Roommate Interest 🏠
+
+        Great news! {{ student_name }} is interested in your roommate listing.
+
+        Location: {{ listing_details.location }}
+        Move-in: {{ listing_details.moveIn }}
+        Budget: {{ listing_details.budget }}
+
+        View your listings: {{ frontend_url }}/roommates/my-listings
+
+        Happy sharing!
+        CampusShare Team
+        """)
+        html_content = html_template.render(student_name=student_name, listing_details=listing_details, frontend_url=frontend_url)
+        text_content = text_template.render(student_name=student_name, listing_details=listing_details, frontend_url=frontend_url)
+        return subject, html_content, text_content
+
+    @staticmethod
+    def roommate_interest_removed_notification(student_name: str, listing_details: dict, frontend_url: str) -> tuple:
+        subject = "CampusShare - 📤 Roommate Interest Removed"
+        html_template = Template("""
+        <!DOCTYPE html>
+        <html>
+        <body style="margin:0;padding:0;font-family:Arial, sans-serif;background-color:#f8fafc;">
+          <div style="max-width:600px;margin:0 auto;background-color:white;">
+            <div style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);padding:30px 20px;text-align:center;">
+              <h1 style="margin:0;color:white;font-size:28px;">🏠 CampusShare</h1>
+              <p style="margin:10px 0 0 0;color:#fef3c7;font-size:16px;">Roommate interest update</p>
+            </div>
+            <div style="padding:40px 30px;">
+              <h2 style="color:#92400e;">📤 Interest Removed</h2>
+              <p><strong>{{ student_name }}</strong> is no longer interested in your roommate listing.</p>
+              <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
+                <h3>📋 Listing Details</h3>
+                <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+              </div>
+              <div style="text-align:center;margin:30px 0;">
+                <a href="{{ frontend_url }}/roommates/my-listings" 
+                   style="background:#6b7280;color:white;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">
+                  📱 View Your Listings
+                </a>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+        """)
+        text_template = Template("""
+        CampusShare - Roommate Interest Removed 📤
+
+        {{ student_name }} is no longer interested in your roommate listing.
+
+        Location: {{ listing_details.location }}
+        Move-in: {{ listing_details.moveIn }}
+        Budget: {{ listing_details.budget }}
+
+        View your listings: {{ frontend_url }}/roommates/my-listings
+
+        Keep sharing!
+        CampusShare Team
+        """)
+        html_content = html_template.render(student_name=student_name, listing_details=listing_details, frontend_url=frontend_url)
+        text_content = text_template.render(student_name=student_name, listing_details=listing_details, frontend_url=frontend_url)
+        return subject, html_content, text_content
+
+    @staticmethod
+    def roommate_updated_notification(listing_details: dict, frontend_url: str) -> tuple:
+        subject = "CampusShare - 📝 Roommate Listing Updated"
+        html_template = Template("""
+        <!DOCTYPE html>
+        <html>
+        <body style="margin:0;padding:0;font-family:Arial, sans-serif;background-color:#f8fafc;">
+          <div style="max-width:600px;margin:0 auto;background-color:white;">
+            <div style="background:linear-gradient(135deg,#10b981 0%, #059669 100%);padding:30px 20px;text-align:center;">
+              <h1 style="margin:0;color:white;font-size:28px;">🏠 CampusShare</h1>
+              <p style="margin:10px 0 0 0;color:#d1fae5;font-size:16px;">Roommate listing updated</p>
+            </div>
+            <div style="padding:40px 30px;">
+              <h2 style="color:#065f46;">📝 Listing Updated</h2>
+              <p>A roommate listing you are interested in has been updated.</p>
+              <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
+                <h3>📋 Current Listing Details</h3>
+                <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+              </div>
+              <div style="text-align:center;margin:30px 0;">
+                <a href="{{ frontend_url }}/roommates/my-interests"
+                   style="background:#10b981;color:white;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">
+                  📱 View Updated Listing
+                </a>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+        """)
+        text_template = Template("""
+        CampusShare - Roommate Listing Updated 📝
+
+        A roommate listing you are interested in has been updated.
+
+        Location: {{ listing_details.location }}
+        Move-in: {{ listing_details.moveIn }}
+        Budget: {{ listing_details.budget }}
+
+        View updated listing: {{ frontend_url }}/roommates/my-interests
+        """)
+        html_content = html_template.render(listing_details=listing_details, frontend_url=frontend_url)
+        text_content = text_template.render(listing_details=listing_details, frontend_url=frontend_url)
+        return subject, html_content, text_content
+
 # Create a global instance
 email_service = EmailService()
