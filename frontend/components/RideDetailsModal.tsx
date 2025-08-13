@@ -160,7 +160,7 @@ export function RideDetailsModal({ isOpen, onClose, rideId }: RideDetailsModalPr
                     <span>
                       {ride.suggestedContribution.amount > 0 
                         ? `${ride.suggestedContribution.amount} ${ride.suggestedContribution.currency}`
-                        : "Free"
+                        : ""
                       }
                     </span>
                   </div>

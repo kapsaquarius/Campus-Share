@@ -3,6 +3,9 @@ from scripts.database import get_collection
 from services.location_service import location_service
 import re
 
+def _tokens(s: str):
+    return [t for t in re.findall(r"[A-Za-z0-9]+", (s or '').lower()) if len(t) >= 2]
+
 def calculate_time_overlap(driver_start_time, driver_end_time, rider_start_time, rider_end_time):
     """Calculate overlap between driver's time range and rider's preferred time"""
     # Convert time strings to minutes for easier comparison
@@ -47,41 +50,28 @@ def is_valid_time_range(start_time, end_time):
     return start_min < end_min
 
 def calculate_location_match_score(ride, search_criteria):
-    """Calculate location matching score with intelligent city-level matching"""
+    """Simplified fuzzy token-based location match score"""
     starting_score = 0.0
     destination_score = 0.0
-    
-    # Check starting location match
+
+    # Starting location
     if search_criteria.get('startingFrom'):
-        search_starting_variations = get_location_variations(search_criteria['startingFrom'])
-        ride_starting_variations = get_location_variations(ride.get('startingFrom', ''))
-        
-        # Check if there's any overlap between variations
-        if any(var in ride_starting_variations for var in search_starting_variations):
-            # Give higher score for exact matches, lower for city-level matches
-            if ride['startingFrom'] == search_criteria['startingFrom']:
-                starting_score = 1.0  # Exact match
-            else:
-                starting_score = 0.9  # City-level match
-    
-    # Check destination match
+        crit_tokens = _tokens(search_criteria['startingFrom'])
+        field_val = (ride.get('startingFrom') or '').lower()
+        if all(t in field_val for t in crit_tokens):
+            starting_score = 1.0 if field_val.strip() == search_criteria['startingFrom'].strip().lower() else 0.9
+
+    # Destination
     if search_criteria.get('goingTo'):
-        search_destination_variations = get_location_variations(search_criteria['goingTo'])
-        ride_destination_variations = get_location_variations(ride.get('goingTo', ''))
-        
-        # Check if there's any overlap between variations
-        if any(var in ride_destination_variations for var in search_destination_variations):
-            # Give higher score for exact matches, lower for city-level matches
-            if ride['goingTo'] == search_criteria['goingTo']:
-                destination_score = 1.0  # Exact match
-            else:
-                destination_score = 0.9  # City-level match
-    
-    # Both locations must match for a valid ride
+        crit_tokens = _tokens(search_criteria['goingTo'])
+        field_val = (ride.get('goingTo') or '').lower()
+        if all(t in field_val for t in crit_tokens):
+            destination_score = 1.0 if field_val.strip() == search_criteria['goingTo'].strip().lower() else 0.9
+
+    # Require both to be positive
     if starting_score > 0 and destination_score > 0:
         return (starting_score + destination_score) / 2
-    else:
-        return 0.0
+    return 0.0
 
 def calculate_ride_score(ride, search_criteria):
     """Calculate a comprehensive score for ride matching"""
@@ -171,22 +161,13 @@ def search_rides_with_scoring(search_criteria, user_id=None):
         from bson import ObjectId
         base_query['userId'] = {'$ne': ObjectId(user_id)}
     
-    # Build intelligent location filters
-    location_filters = {}
-    
+    # Build simplified fuzzy token location filters (all tokens must match)
     if search_criteria.get('startingFrom'):
-        starting_variations = get_location_variations(search_criteria['startingFrom'])
-        if starting_variations:
-            location_filters['startingFrom'] = {'$in': starting_variations}
-    
+        for t in _tokens(search_criteria['startingFrom']):
+            base_query.setdefault('$and', []).append({'startingFrom': {'$regex': t, '$options': 'i'}})
     if search_criteria.get('goingTo'):
-        destination_variations = get_location_variations(search_criteria['goingTo'])
-        if destination_variations:
-            location_filters['goingTo'] = {'$in': destination_variations}
-    
-    # Combine base query with location filters
-    if location_filters:
-        base_query.update(location_filters)
+        for t in _tokens(search_criteria['goingTo']):
+            base_query.setdefault('$and', []).append({'goingTo': {'$regex': t, '$options': 'i'}})
     
     potential_rides = list(ride_posts.find(base_query))
     
@@ -260,8 +241,25 @@ def get_location_variations(location_string):
     # Parse the location string
     parsed = location_service.parse_location_string(location_string)
     if not parsed:
-        # If parsing fails, return the original string for exact match
-        return [location_string]
+        # If parsing fails, broaden by generating common display variants
+        s = location_string.strip()
+        variants = [s]
+        # Try adding/removing comma between city/state
+        if ',' in s:
+            no_comma = ' '.join([p.strip() for p in s.split(',')])
+            variants.append(no_comma)
+        else:
+            parts = s.split()
+            if len(parts) >= 2:
+                variants.append(parts[0] + ', ' + ' '.join(parts[1:]))
+        # Return unique
+        seen = set()
+        unique = []
+        for v in variants:
+            if v not in seen:
+                seen.add(v)
+                unique.append(v)
+        return unique
     
     variations = [location_string]  # Always include the original
     

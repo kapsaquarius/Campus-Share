@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Eye, EyeOff, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -25,7 +24,6 @@ interface FormData {
   name: string
   phone: string
   whatsapp: string
-  agreeToTerms: boolean
 }
 
 export default function RegisterPage() {
@@ -37,7 +35,6 @@ export default function RegisterPage() {
     name: "",
     phone: "",
     whatsapp: "",
-    agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -143,9 +140,7 @@ export default function RegisterPage() {
         const whatsappValidation = validatePhoneNumber(value)
         return whatsappValidation.isValid ? "" : whatsappValidation.error || "Invalid WhatsApp number"
 
-      case "agreeToTerms":
-        if (!value) return "You must agree to the Terms of Service"
-        return ""
+      
 
       default:
         return ""
@@ -236,7 +231,6 @@ export default function RegisterPage() {
     formData.password &&
     formData.confirmPassword &&
     formData.name &&
-    formData.agreeToTerms &&
     Object.keys(errors).length === 0 &&
     emailExists === false && // Email must be available (not exist)
     !emailChecking // Email check must not be in progress
@@ -415,24 +409,7 @@ export default function RegisterPage() {
               {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
-              />
-              <Label htmlFor="agreeToTerms" className="text-sm">
-                I agree to the{" "}
-                <Link href="/terms" className="text-blue-600 hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="text-blue-600 hover:underline">
-                  Privacy Policy
-                </Link> <span className="text-red-500">*</span>
-              </Label>
-            </div>
-            {errors.agreeToTerms && <p className="text-sm text-red-500">{errors.agreeToTerms}</p>}
+            
 
             <Button 
               type="submit" 

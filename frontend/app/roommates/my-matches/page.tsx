@@ -75,7 +75,7 @@ export default function MyRoommateMatchesPage() {
           <div className="flex items-center justify-center min-h-[300px]">
             <div className="flex items-center gap-3">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-              <span className="text-base text-gray-600">Loading your matches...</span>
+              <span className="text-base text-gray-600">Loading your roommate interests...</span>
             </div>
           </div>
         </div>

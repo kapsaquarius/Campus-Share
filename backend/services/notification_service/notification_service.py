@@ -97,7 +97,11 @@ def create_ride_interest_notification(ride_id, interested_user_id, ride_details)
                     'source': ride_details.get('startingFrom', ''),
                     'destination': ride_details.get('goingTo', ''),
                     'date': ride_details.get('travelDate', ''),
-                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}",
+                    'availableSeats': ride_details.get('availableSeats', ''),
+                    'seatsRemaining': ride_details.get('seatsRemaining', ''),
+                    'contribution': (f"{ride_details.get('suggestedContribution', 0)} USD" if ride_details.get('suggestedContribution', 0) else ''),
+                    'additionalDetails': ride_details.get('additionalDetails', '')
                 }
                 frontend_url = os.getenv('FRONTEND_URL')
                 return EmailTemplates.ride_interest_notification(
@@ -131,7 +135,11 @@ def create_ride_interest_removed_notification(ride_id, removed_user_id, ride_det
                     'source': ride_details.get('startingFrom', ''),
                     'destination': ride_details.get('goingTo', ''),
                     'date': ride_details.get('travelDate', ''),
-                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                    'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}",
+                    'availableSeats': ride_details.get('availableSeats', ''),
+                    'seatsRemaining': ride_details.get('seatsRemaining', ''),
+                    'contribution': (f"{ride_details.get('suggestedContribution', 0)} USD" if ride_details.get('suggestedContribution', 0) else ''),
+                    'additionalDetails': ride_details.get('additionalDetails', '')
                 }
                 frontend_url = os.getenv('FRONTEND_URL')
                 return EmailTemplates.interest_removed_notification(
@@ -161,9 +169,20 @@ def create_roommate_interest_notification(post_id, interested_user_id, listing_d
         def _build(_r):
             frontend_url = os.getenv('FRONTEND_URL') or ''
             listing_info = {
+                'type': listing_details.get('type',''),
                 'location': listing_details.get('location', ''),
+                'exactAddress': listing_details.get('exactAddress',''),
                 'moveIn': listing_details.get('moveInEarliest', ''),
-                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+                'budgetMin': listing_details.get('budgetMin',''),
+                'budgetMax': listing_details.get('budgetMax',''),
+                'roomType': listing_details.get('roomType',''),
+                'furnished': bool(listing_details.get('furnished', False)),
+                'petFriendly': bool(listing_details.get('petFriendly', False)),
+                'smokerOk': bool(listing_details.get('smokerOk', False)),
+                'dietaryPreference': listing_details.get('dietaryPreference',''),
+                'sleepSchedule': listing_details.get('sleepSchedule',''),
+                'guestsPerWeek': listing_details.get('guestsPerWeek',''),
+                'additionalDetails': listing_details.get('additionalDetails','')
             }
             return EmailTemplates.roommate_interest_notification(
                 interested_user.get('name','A student'), listing_info, frontend_url
@@ -193,9 +212,20 @@ def create_roommate_interest_removed_notification(post_id, removed_user_id, list
             def _build(_r):
                 frontend_url = os.getenv('FRONTEND_URL') or ''
                 details = {
+                    'type': listing_details.get('type',''),
                     'location': listing_details.get('location','N/A'),
+                    'exactAddress': listing_details.get('exactAddress',''),
                     'moveIn': listing_details.get('moveInEarliest','N/A'),
-                    'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+                    'budgetMin': listing_details.get('budgetMin',''),
+                    'budgetMax': listing_details.get('budgetMax',''),
+                    'roomType': listing_details.get('roomType',''),
+                    'furnished': bool(listing_details.get('furnished', False)),
+                    'petFriendly': bool(listing_details.get('petFriendly', False)),
+                    'smokerOk': bool(listing_details.get('smokerOk', False)),
+                    'dietaryPreference': listing_details.get('dietaryPreference',''),
+                    'sleepSchedule': listing_details.get('sleepSchedule',''),
+                    'guestsPerWeek': listing_details.get('guestsPerWeek',''),
+                    'additionalDetails': listing_details.get('additionalDetails','')
                 }
                 return EmailTemplates.roommate_interest_removed_notification(
                     removed_user.get('name','A student'), details, frontend_url
@@ -234,9 +264,20 @@ def create_roommate_update_notification(post_id, listing_details):
         def _build(r):
             frontend_url = os.getenv('FRONTEND_URL') or ''
             details = {
+                'type': listing_details.get('type',''),
                 'location': listing_details.get('location',''),
+                'exactAddress': listing_details.get('exactAddress',''),
                 'moveIn': listing_details.get('moveInEarliest',''),
-                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+                'budgetMin': listing_details.get('budgetMin',''),
+                'budgetMax': listing_details.get('budgetMax',''),
+                'roomType': listing_details.get('roomType',''),
+                'furnished': bool(listing_details.get('furnished', False)),
+                'petFriendly': bool(listing_details.get('petFriendly', False)),
+                'smokerOk': bool(listing_details.get('smokerOk', False)),
+                'dietaryPreference': listing_details.get('dietaryPreference',''),
+                'sleepSchedule': listing_details.get('sleepSchedule',''),
+                'guestsPerWeek': listing_details.get('guestsPerWeek',''),
+                'additionalDetails': listing_details.get('additionalDetails','')
             }
             return EmailTemplates.roommate_updated_notification(details, frontend_url)
         _send_bulk_emails_async(recipients, _build)
@@ -275,7 +316,11 @@ def create_ride_update_notification(ride_id, ride_details):
                 'source': ride_details.get('startingFrom', ''),
                 'destination': ride_details.get('goingTo', ''),
                 'date': ride_details.get('travelDate', ''),
-                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}",
+                'availableSeats': ride_details.get('availableSeats', ''),
+                'seatsRemaining': ride_details.get('seatsRemaining', ''),
+                'contribution': (f"{ride_details.get('suggestedContribution', 0)} USD" if ride_details.get('suggestedContribution', 0) else ''),
+                'additionalDetails': ride_details.get('additionalDetails', '')
             }
             updated_fields = ['ride details']
             frontend_url = os.getenv('FRONTEND_URL')
@@ -319,7 +364,11 @@ def create_ride_cancellation_notifications(ride_id, ride_details):
                 'source': ride_details.get('startingFrom', ''),
                 'destination': ride_details.get('goingTo', ''),
                 'date': ride_details.get('travelDate', ''),
-                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}"
+                'time': f"{ride_details.get('departureStartTime', '')} - {ride_details.get('departureEndTime', '')}",
+                'availableSeats': ride_details.get('availableSeats', ''),
+                'seatsRemaining': ride_details.get('seatsRemaining', ''),
+                'contribution': (f"{ride_details.get('suggestedContribution', 0)} USD" if ride_details.get('suggestedContribution', 0) else ''),
+                'additionalDetails': ride_details.get('additionalDetails', '')
             }
             frontend_url = os.getenv('FRONTEND_URL')
             return EmailTemplates.ride_cancelled_notification(
@@ -359,9 +408,20 @@ def create_roommate_cancellation_notification(post_id, listing_details):
         def _build(r):
             frontend_url = os.getenv('FRONTEND_URL') or ''
             details = {
+                'type': listing_details.get('type',''),
                 'location': listing_details.get('location',''),
+                'exactAddress': listing_details.get('exactAddress',''),
                 'moveIn': listing_details.get('moveInEarliest',''),
-                'budget': f"{listing_details.get('budgetMin','')} - {listing_details.get('budgetMax','')}"
+                'budgetMin': listing_details.get('budgetMin',''),
+                'budgetMax': listing_details.get('budgetMax',''),
+                'roomType': listing_details.get('roomType',''),
+                'furnished': bool(listing_details.get('furnished', False)),
+                'petFriendly': bool(listing_details.get('petFriendly', False)),
+                'smokerOk': bool(listing_details.get('smokerOk', False)),
+                'dietaryPreference': listing_details.get('dietaryPreference',''),
+                'sleepSchedule': listing_details.get('sleepSchedule',''),
+                'guestsPerWeek': listing_details.get('guestsPerWeek',''),
+                'additionalDetails': listing_details.get('additionalDetails','')
             }
             return EmailTemplates.roommate_cancelled_notification('', details, frontend_url)
         _send_bulk_emails_async(recipients, _build)

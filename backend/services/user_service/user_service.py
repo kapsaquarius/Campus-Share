@@ -109,11 +109,12 @@ class UserService:
             # Delete all ride posts created by this user and cascade delete their interests
             ride_post_ids = [doc['_id'] for doc in ride_posts.find({"userId": user_object_id}, {"_id": 1})]
             if ride_post_ids:
-                ride_interests.delete_many({"postId": {"$in": ride_post_ids}})
+                # ride_interests reference rides by 'rideId'
+                ride_interests.delete_many({"rideId": {"$in": ride_post_ids}})
             ride_posts.delete_many({"userId": user_object_id})
             
-            # Delete all ride interests expressed by this user
-            ride_interests.delete_many({"userId": user_object_id})
+            # Delete all ride interests expressed by this user (field is 'interestedUserId')
+            ride_interests.delete_many({"interestedUserId": user_object_id})
 
             # Delete all roommate posts created by this user and cascade delete their interests
             rm_post_ids = [doc['_id'] for doc in roommate_posts.find({"userId": user_object_id}, {"_id": 1})]

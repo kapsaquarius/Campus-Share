@@ -73,7 +73,7 @@ export default function CreateRidePage() {
   const { toast } = useToast()
   const { user, token } = useAuth()
 
-  const { popularLocations, searchLocations } = useLocation()
+  const { searchLocations } = useLocation()
 
   // Auto-clear time errors when times become valid
   useEffect(() => {
@@ -622,7 +622,7 @@ export default function CreateRidePage() {
                     <DollarSign className="w-4 h-4" />
                     {formData.suggestedContribution > 0 
                       ? `${formData.suggestedContribution} USD`
-                      : "Free"
+                      : ""
                     }
                   </div>
                   {formData.additionalDetails && (

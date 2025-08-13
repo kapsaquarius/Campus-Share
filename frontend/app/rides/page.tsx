@@ -94,7 +94,7 @@ export default function RidesPage() {
   const [expressingInterest, setExpressingInterest] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const { popularLocations, searchLocations } = useLocation()
+  const { searchLocations } = useLocation()
   const [startingSuggestions, setStartingSuggestions] = useState<any[]>([])
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([])
   const [showStartingSuggestions, setShowStartingSuggestions] = useState(false)
@@ -750,7 +750,7 @@ export default function RidesPage() {
                           <DollarSign className="w-4 h-4 flex-shrink-0" />
                           <span>{ride.suggestedContribution.amount > 0 
                             ? `${ride.suggestedContribution.amount} ${ride.suggestedContribution.currency}`
-                            : "Free"
+                            : ""
                           }</span>
                         </div>
                       </div>

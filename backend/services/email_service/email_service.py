@@ -129,6 +129,22 @@ class EmailTemplates:
                                 <span style="color: #64748b; font-weight: 500; width: 100px; display: inline-block;">⏰ Time:</span>
                                 <span style="color: #374151;">{{ ride_details.time }}</span>
                             </div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="color: #64748b; font-weight: 500; width: 100px; display: inline-block;">🧑‍🤝‍🧑 Seats:</span>
+                                <span style="color: #374151;">{{ ride_details.seatsRemaining }} / {{ ride_details.availableSeats }}</span>
+                            </div>
+                            {% if ride_details.contribution %}
+                            <div style="display: flex; align-items: center;">
+                                <span style="color: #64748b; font-weight: 500; width: 100px; display: inline-block;">💵 Cost:</span>
+                                <span style="color: #374151;">{{ ride_details.contribution }}</span>
+                            </div>
+                            {% endif %}
+                            {% if ride_details.additionalDetails %}
+                            <div style="display: flex; align-items: flex-start;">
+                                <span style="color: #64748b; font-weight: 500; width: 100px; display: inline-block;">📝 Notes:</span>
+                                <span style="color: #374151;">{{ ride_details.additionalDetails }}</span>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -210,6 +226,13 @@ class EmailTemplates:
                         <p><strong>To:</strong> {{ ride_details.destination }}</p>
                         <p><strong>Date:</strong> {{ ride_details.date }}</p>
                         <p><strong>Time:</strong> {{ ride_details.time }}</p>
+                        <p><strong>Seats:</strong> {{ ride_details.seatsRemaining }} / {{ ride_details.availableSeats }}</p>
+                        {% if ride_details.contribution %}
+                        <p><strong>Cost:</strong> {{ ride_details.contribution }}</p>
+                        {% endif %}
+                        {% if ride_details.additionalDetails %}
+                        <p><strong>Notes:</strong> {{ ride_details.additionalDetails }}</p>
+                        {% endif %}
                     </div>
                     
                     <div style="text-align: center; margin: 30px 0;">
@@ -266,7 +289,6 @@ class EmailTemplates:
                 <div style="padding: 40px 30px;">
                     <h2 style="color: #065f46;">📝 Ride Updated</h2>
                     <p>The ride to <strong>{{ ride_details.destination }}</strong> you're interested in has been updated.</p>
-                    <p><strong>Updated:</strong> {{ updated_text }}</p>
                     
                     <div style="background-color: #fefefe; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; margin: 20px 0;">
                         <h3>📋 Current Ride Details</h3>
@@ -274,6 +296,13 @@ class EmailTemplates:
                         <p><strong>To:</strong> {{ ride_details.destination }}</p>
                         <p><strong>Date:</strong> {{ ride_details.date }}</p>
                         <p><strong>Time:</strong> {{ ride_details.time }}</p>
+                        <p><strong>Seats:</strong> {{ ride_details.seatsRemaining }} / {{ ride_details.availableSeats }}</p>
+                        {% if ride_details.contribution %}
+                        <p><strong>Cost:</strong> {{ ride_details.contribution }}</p>
+                        {% endif %}
+                        {% if ride_details.additionalDetails %}
+                        <p><strong>Notes:</strong> {{ ride_details.additionalDetails }}</p>
+                        {% endif %}
                     </div>
                     
                     <div style="text-align: center; margin: 30px 0;">
@@ -337,6 +366,13 @@ class EmailTemplates:
                         <p><strong>To:</strong> {{ ride_details.destination }}</p>
                         <p><strong>Date:</strong> {{ ride_details.date }}</p>
                         <p><strong>Time:</strong> {{ ride_details.time }}</p>
+                        <p><strong>Seats:</strong> {{ ride_details.seatsRemaining }} / {{ ride_details.availableSeats }}</p>
+                        {% if ride_details.contribution %}
+                        <p><strong>Cost:</strong> {{ ride_details.contribution }}</p>
+                        {% endif %}
+                        {% if ride_details.additionalDetails %}
+                        <p><strong>Notes:</strong> {{ ride_details.additionalDetails }}</p>
+                        {% endif %}
                     </div>
                     
                     <div style="text-align: center; margin: 30px 0;">
@@ -402,9 +438,19 @@ class EmailTemplates:
               </div>
               <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin-bottom:30px;">
                 <h3 style="margin:0 0 20px 0;color:#1e293b;font-size:18px;border-bottom:2px solid #f1f5f9;padding-bottom:10px;">📋 Listing Details</h3>
+                <p style="margin:0;color:#374151;">Type: {{ listing_details.type == 'offer' and 'Offering a room' or 'Looking for a room' }}</p>
                 <p style="margin:0;color:#374151;">Location: {{ listing_details.location }}</p>
+                {% if listing_details.exactAddress %}<p style="margin:0;color:#374151;">Exact address: {{ listing_details.exactAddress }}</p>{% endif %}
                 <p style="margin:0;color:#374151;">Move-in: {{ listing_details.moveIn }}</p>
-                <p style="margin:0;color:#374151;">Budget: {{ listing_details.budget }}</p>
+                <p style="margin:0;color:#374151;">Budget: {{ listing_details.budgetMin }} - {{ listing_details.budgetMax }} USD/mo</p>
+                {% if listing_details.roomType %}<p style="margin:0;color:#374151;">Room type: {{ listing_details.roomType }}</p>{% endif %}
+                <p style="margin:0;color:#374151;">Furnished: {{ listing_details.furnished and 'Yes' or 'No' }}</p>
+                <p style="margin:0;color:#374151;">Pets: {{ listing_details.petFriendly and 'OK' or 'No' }}</p>
+                <p style="margin:0;color:#374151;">Smoking: {{ listing_details.smokerOk and 'OK' or 'No' }}</p>
+                {% if listing_details.dietaryPreference %}<p style="margin:0;color:#374151;">Dietary: {{ listing_details.dietaryPreference }}</p>{% endif %}
+                {% if listing_details.sleepSchedule %}<p style="margin:0;color:#374151;">Sleep: {{ listing_details.sleepSchedule }}</p>{% endif %}
+                {% if listing_details.guestsPerWeek %}<p style="margin:0;color:#374151;">Guests/week: {{ listing_details.guestsPerWeek }}</p>{% endif %}
+                {% if listing_details.additionalDetails %}<p style="margin:0;color:#374151;">Notes: {{ listing_details.additionalDetails }}</p>{% endif %}
               </div>
               <div style="text-align:center;margin-bottom:30px;">
                 <a href="{{ frontend_url }}/roommates/my-listings" style="display:inline-block;background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);color:white;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:16px;">📱 View Your Listings</a>
@@ -452,9 +498,19 @@ class EmailTemplates:
               <p><strong>{{ student_name }}</strong> is no longer interested in your roommate listing.</p>
               <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
                 <h3>📋 Listing Details</h3>
+                <p><strong>Type:</strong> {{ listing_details.type == 'offer' and 'Offering a room' or 'Looking for a room' }}</p>
                 <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                {% if listing_details.exactAddress %}<p><strong>Exact address:</strong> {{ listing_details.exactAddress }}</p>{% endif %}
                 <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
-                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budgetMin }} - {{ listing_details.budgetMax }} USD/mo</p>
+                {% if listing_details.roomType %}<p><strong>Room type:</strong> {{ listing_details.roomType }}</p>{% endif %}
+                <p><strong>Furnished:</strong> {{ listing_details.furnished and 'Yes' or 'No' }}</p>
+                <p><strong>Pets:</strong> {{ listing_details.petFriendly and 'OK' or 'No' }}</p>
+                <p><strong>Smoking:</strong> {{ listing_details.smokerOk and 'OK' or 'No' }}</p>
+                {% if listing_details.dietaryPreference %}<p><strong>Dietary:</strong> {{ listing_details.dietaryPreference }}</p>{% endif %}
+                {% if listing_details.sleepSchedule %}<p><strong>Sleep:</strong> {{ listing_details.sleepSchedule }}</p>{% endif %}
+                {% if listing_details.guestsPerWeek %}<p><strong>Guests/week:</strong> {{ listing_details.guestsPerWeek }}</p>{% endif %}
+                {% if listing_details.additionalDetails %}<p><strong>Notes:</strong> {{ listing_details.additionalDetails }}</p>{% endif %}
               </div>
               <div style="text-align:center;margin:30px 0;">
                 <a href="{{ frontend_url }}/roommates/my-listings" 
@@ -502,9 +558,18 @@ class EmailTemplates:
               <p>A roommate listing you are interested in has been updated.</p>
               <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
                 <h3>📋 Current Listing Details</h3>
+                <p><strong>Type:</strong> {{ listing_details.type == 'offer' and 'Offering a room' or 'Looking for a room' }}</p>
                 <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                {% if listing_details.exactAddress %}<p><strong>Exact address:</strong> {{ listing_details.exactAddress }}</p>{% endif %}
                 <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
-                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budgetMin }} - {{ listing_details.budgetMax }} USD/mo</p>
+                {% if listing_details.roomType %}<p><strong>Room type:</strong> {{ listing_details.roomType }}</p>{% endif %}
+                <p><strong>Furnished:</strong> {{ listing_details.furnished and 'Yes' or 'No' }}</p>
+                <p><strong>Pets:</strong> {{ listing_details.petFriendly and 'OK' or 'No' }}</p>
+                <p><strong>Smoking:</strong> {{ listing_details.smokerOk and 'OK' or 'No' }}</p>
+                {% if listing_details.dietaryPreference %}<p><strong>Dietary:</strong> {{ listing_details.dietaryPreference }}</p>{% endif %}
+                {% if listing_details.sleepSchedule %}<p><strong>Sleep:</strong> {{ listing_details.sleepSchedule }}</p>{% endif %}
+                {% if listing_details.guestsPerWeek %}<p><strong>Guests/week:</strong> {{ listing_details.guestsPerWeek }}</p>{% endif %}
               </div>
               <div style="text-align:center;margin:30px 0;">
                 <a href="{{ frontend_url }}/roommates/my-interests"
@@ -549,9 +614,18 @@ class EmailTemplates:
               <p>Unfortunately, a roommate listing you were interested in has been cancelled.</p>
               <div style="background-color:#fefefe;border:1px solid #e2e8f0;border-radius:8px;padding:25px;margin:20px 0;">
                 <h3>📋 Cancelled Listing Details</h3>
+                <p><strong>Type:</strong> {{ listing_details.type == 'offer' and 'Offering a room' or 'Looking for a room' }}</p>
                 <p><strong>Location:</strong> {{ listing_details.location }}</p>
+                {% if listing_details.exactAddress %}<p><strong>Exact address:</strong> {{ listing_details.exactAddress }}</p>{% endif %}
                 <p><strong>Move-in:</strong> {{ listing_details.moveIn }}</p>
-                <p><strong>Budget:</strong> {{ listing_details.budget }}</p>
+                <p><strong>Budget:</strong> {{ listing_details.budgetMin }} - {{ listing_details.budgetMax }} USD/mo</p>
+                {% if listing_details.roomType %}<p><strong>Room type:</strong> {{ listing_details.roomType }}</p>{% endif %}
+                <p><strong>Furnished:</strong> {{ listing_details.furnished and 'Yes' or 'No' }}</p>
+                <p><strong>Pets:</strong> {{ listing_details.petFriendly and 'OK' or 'No' }}</p>
+                <p><strong>Smoking:</strong> {{ listing_details.smokerOk and 'OK' or 'No' }}</p>
+                {% if listing_details.dietaryPreference %}<p><strong>Dietary:</strong> {{ listing_details.dietaryPreference }}</p>{% endif %}
+                {% if listing_details.sleepSchedule %}<p><strong>Sleep:</strong> {{ listing_details.sleepSchedule }}</p>{% endif %}
+                {% if listing_details.guestsPerWeek %}<p><strong>Guests/week:</strong> {{ listing_details.guestsPerWeek }}</p>{% endif %}
               </div>
               <div style="text-align:center;margin:30px 0;">
                 <a href="{{ frontend_url }}/roommates" 

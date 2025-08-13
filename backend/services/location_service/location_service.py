@@ -15,7 +15,28 @@ class LocationService:
                 {'zipCode': {'$regex': query, '$options': 'i'}},
                 {'city': {'$regex': query, '$options': 'i'}},
                 {'state': {'$regex': query, '$options': 'i'}},
-                {'stateName': {'$regex': query, '$options': 'i'}}
+                {'stateName': {'$regex': query, '$options': 'i'}},
+                # Free-form support like "Washington DC" or "New York NY"
+                {'$expr': {'$regexMatch': {
+                    'input': {'$concat': ['$city', ' ', '$state']},
+                    'regex': query,
+                    'options': 'i'
+                }}},
+                {'$expr': {'$regexMatch': {
+                    'input': {'$concat': ['$city', ', ', '$state']},
+                    'regex': query,
+                    'options': 'i'
+                }}},
+                {'$expr': {'$regexMatch': {
+                    'input': {'$concat': ['$city', ', ', '$stateName']},
+                    'regex': query,
+                    'options': 'i'
+                }}},
+                {'$expr': {'$regexMatch': {
+                    'input': {'$concat': ['$city', ' ', '$stateName']},
+                    'regex': query,
+                    'options': 'i'
+                }}}
             ]
         }
         
@@ -57,7 +78,8 @@ class LocationService:
             'city': location['city'],
             'state': location['state'],
             'stateName': location['stateName'],
-            'displayName': f"{location['city']}, {location['stateName']} {location['zipCode']}"
+            # Prefer short format "City, ST" for UI simplicity
+            'displayName': f"{location['city']}, {location['state']}"
         }
     
     def _format_locations(self, locations: List[Dict]) -> List[Dict]:
@@ -76,9 +98,13 @@ class LocationService:
     
     def get_all_city_display_names(self, city: str, state_name: str) -> List[str]:
         """Get all possible display name variations for a city"""
+        # Accept either state full name or state abbreviation for robustness (e.g., "DC" or "District Of Columbia")
         query = {
             'city': {'$regex': f'^{re.escape(city)}$', '$options': 'i'},
-            'stateName': {'$regex': f'^{re.escape(state_name)}$', '$options': 'i'}
+            '$or': [
+                {'stateName': {'$regex': f'^{re.escape(state_name)}$', '$options': 'i'}},
+                {'state': {'$regex': f'^{re.escape(state_name)}$', '$options': 'i'}}
+            ]
         }
         
         locations = list(self.locations.find(query).sort('zipCode', 1))
@@ -88,10 +114,16 @@ class LocationService:
             # Add both general city format and specific zip code format
             general_name = f"{location['city']}, {location['stateName']}"
             specific_name = f"{location['city']}, {location['stateName']} {location['zipCode']}"
+            # Also add short state abbreviation variants
+            general_abbrev = f"{location['city']}, {location['state']}"
+            specific_abbrev = f"{location['city']}, {location['state']} {location['zipCode']}"
             
             if general_name not in display_names:
                 display_names.append(general_name)
             display_names.append(specific_name)
+            if general_abbrev not in display_names:
+                display_names.append(general_abbrev)
+            display_names.append(specific_abbrev)
         
         return display_names
     

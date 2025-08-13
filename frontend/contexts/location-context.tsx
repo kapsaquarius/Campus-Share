@@ -14,7 +14,6 @@ interface Location {
 
 interface LocationContextType {
   recentSearches: Location[]
-  popularLocations: Location[]
   searchLocations: (query: string) => Promise<Location[]>
   addToRecent: (location: Location) => void
 }
@@ -23,37 +22,11 @@ const LocationContext = createContext<LocationContextType | undefined>(undefined
 
 export function LocationProvider({ children }: { children: ReactNode }) {
   const [recentSearches, setRecentSearches] = useState<Location[]>([])
-  const [popularLocations] = useState<Location[]>([
-    {
-      _id: "1",
-      zipCode: "80301",
-      city: "Boulder",
-      state: "CO",
-      stateName: "Colorado",
-      displayName: "Boulder, Colorado 80301",
-    },
-    {
-      _id: "2",
-      zipCode: "80202",
-      city: "Denver",
-      state: "CO",
-      stateName: "Colorado",
-      displayName: "Denver, Colorado 80202",
-    },
-    {
-      _id: "3",
-      zipCode: "80206",
-      city: "Denver",
-      state: "CO",
-      stateName: "Colorado",
-      displayName: "Denver International Airport",
-    },
-  ])
 
   const searchLocations = async (query: string): Promise<Location[]> => {
     try {
       const response = await apiService.getLocations(query, 20)
-      const locations = response.data?.locations || []
+      const locations = (response.data as any)?.locations || []
       
       // Process and simplify suggestions - only city-level results
       return processSimplifiedLocationSuggestions(locations, query)
@@ -77,7 +50,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           city: location.city,
           state: location.state,
           stateName: location.stateName,
-          displayName: `${location.city}, ${location.stateName}` // Clean city, state format
+          displayName: `${location.city}, ${location.state}` // Short city, state abbreviation
         }
         cityGroups.set(cityKey, cityLocation)
       }
@@ -120,7 +93,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     <LocationContext.Provider
       value={{
         recentSearches,
-        popularLocations,
         searchLocations,
         addToRecent,
       }}

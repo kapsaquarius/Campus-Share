@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, List, Any
+import re
 
 from scripts.database import get_collection
 from services.location_service import location_service
@@ -11,7 +12,23 @@ def get_location_variations(location_string: str) -> List[str]:
         return []
     parsed = location_service.parse_location_string(location_string)
     if not parsed:
-        return [location_string]
+        s = location_string.strip()
+        variants = [s]
+        if ',' in s:
+            no_comma = ' '.join([p.strip() for p in s.split(',')])
+            variants.append(no_comma)
+        else:
+            parts = s.split()
+            if len(parts) >= 2:
+                variants.append(parts[0] + ', ' + ' '.join(parts[1:]))
+        # unique
+        seen = set()
+        unique = []
+        for v in variants:
+            if v not in seen:
+                seen.add(v)
+                unique.append(v)
+        return unique
     variations = [location_string]
     try:
         if parsed.get('city') and parsed.get('state'):
@@ -53,13 +70,16 @@ def _date_distance_days(date_str: str, target_str: str) -> int:
 def calculate_listing_score(listing: Dict[str, Any], criteria: Dict[str, Any]) -> float:
     score = 0.0
 
-    # 1) Location (25%)
+    # 1) Location (25%) – simplified fuzzy token match
     location_score = 0.0
     if criteria.get('location'):
-        search_vars = get_location_variations(criteria['location'])
-        list_vars = get_location_variations(listing.get('location', ''))
-        if any(v in list_vars for v in search_vars):
-            location_score = 1.0 if listing.get('location') == criteria['location'] else 0.9
+        def tokens(s: str) -> List[str]:
+            return [t for t in re.findall(r"[A-Za-z0-9]+", s.lower()) if len(t) >= 2]
+        crit_tokens = tokens(criteria['location'])
+        loc_val = (listing.get('location') or '')
+        loc_norm = loc_val.lower()
+        if all(t in loc_norm for t in crit_tokens if t):
+            location_score = 1.0 if loc_norm.strip() == criteria['location'].strip().lower() else 0.9
     else:
         location_score = 0.7  # mild default if no location filter
     score += location_score * 0.25
@@ -165,11 +185,16 @@ def search_roommates_with_scoring(criteria: Dict[str, Any], user_id: str | None 
     if criteria.get('type') in ('offer', 'seek'):
         query['type'] = criteria['type']
 
-    # Location (city-level variations)
+    # Location fuzzy token filter (simplified)
     if criteria.get('location'):
-        vars = get_location_variations(criteria['location'])
-        if vars:
-            query['location'] = { '$in': vars }
+        crit = criteria['location']
+        toks = [t for t in re.findall(r"[A-Za-z0-9]+", crit) if len(t) >= 2]
+        if toks:
+            and_clauses = query.get('$and', [])
+            for t in toks:
+                and_clauses.append({ 'location': { '$regex': t, '$options': 'i' } })
+            if and_clauses:
+                query['$and'] = and_clauses
 
     # Room & lifestyle filters
     if criteria.get('roomType') in ('private', 'shared'):
