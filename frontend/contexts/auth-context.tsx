@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { apiService } from "@/lib/api"
 
 interface User {
@@ -45,30 +45,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true) // Start with loading=true
+  const logoutTimerRef = useRef<number | null>(null)
+
+  const parseJwt = (jwtToken: string): { exp?: number } | null => {
+    try {
+      const base64Url = jwtToken.split('.')[1]
+      if (!base64Url) return null
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      )
+      return JSON.parse(jsonPayload)
+    } catch {
+      return null
+    }
+  }
+
+  const scheduleLogoutAtExpiry = (jwtToken: string) => {
+    // Clear previous timer
+    if (logoutTimerRef.current) {
+      window.clearTimeout(logoutTimerRef.current)
+      logoutTimerRef.current = null
+    }
+    const payload = parseJwt(jwtToken)
+    if (!payload?.exp) return
+    const expiresAtMs = payload.exp * 1000
+    const now = Date.now()
+    const msUntilExpiry = Math.max(0, expiresAtMs - now)
+    // If already expired, logout immediately
+    if (msUntilExpiry === 0) {
+      logout()
+      return
+    }
+    logoutTimerRef.current = window.setTimeout(() => {
+      logout()
+    }, msUntilExpiry)
+  }
 
   useEffect(() => {
     const initAuth = async () => {
-      console.log('AuthContext: Initializing authentication...')
       try {
         const storedToken = localStorage.getItem('token')
         const storedUser = localStorage.getItem('user')
         
-        console.log('AuthContext: Stored token exists:', !!storedToken)
-        console.log('AuthContext: Stored user exists:', !!storedUser)
         
         if (storedToken && storedUser) {
+          // If stored token expired, clear it
+          const payload = parseJwt(storedToken)
+          if (payload?.exp && payload.exp * 1000 <= Date.now()) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+          } else {
           setToken(storedToken)
           setUser(JSON.parse(storedUser))
-          console.log('AuthContext: User restored from localStorage')
+            scheduleLogoutAtExpiry(storedToken)
+          }
         } else {
-          console.log('AuthContext: No stored authentication found')
         }
       } catch (error) {
         console.error('AuthContext: Error parsing stored user data:', error)
         localStorage.removeItem('token')
         localStorage.removeItem('user')
       } finally {
-        console.log('AuthContext: Initialization complete, setting loading to false')
         setLoading(false) // Always set loading to false when done
       }
     }
@@ -87,13 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (response.data) {
-        const { user, token } = response.data
+        const { user, token } = (response.data as any)
         setUser(user)
         setToken(token)
         
 
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
+        scheduleLogoutAtExpiry(token)
         
         return { success: true }
       }
@@ -117,13 +159,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (response.data) {
-        const { user, token } = response.data
+        const { user, token } = (response.data as any)
         setUser(user)
         setToken(token)
         
 
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
+        scheduleLogoutAtExpiry(token)
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -138,7 +181,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    console.log("User logged out successfully")
+    if (logoutTimerRef.current) {
+      window.clearTimeout(logoutTimerRef.current)
+      logoutTimerRef.current = null
+    }
+  
   }
 
   const updateProfile = async (profileData: ProfileData) => {
@@ -157,8 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(response.error)
       }
       
-      if (response.data && response.data.user) {
-        const updatedUser = response.data.user
+      if (response.data && (response.data as any).user) {
+        const updatedUser = (response.data as any).user
         setUser(updatedUser)
         
         localStorage.setItem('user', JSON.stringify(updatedUser))

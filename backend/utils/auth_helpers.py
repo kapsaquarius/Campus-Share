@@ -4,11 +4,15 @@ from flask import current_app
 from bson import ObjectId
 from scripts.database import get_collection, format_object_id
 
-def create_jwt_token(user_id):
-    """Create JWT token for user"""
+def create_jwt_token(user_id, expires_in_minutes: int | None = None):
+    """Create JWT token for user with expiration (default 7 days)."""
+    if expires_in_minutes is None:
+        expires_in = timedelta(days=7)
+    else:
+        expires_in = timedelta(minutes=expires_in_minutes)
     payload = {
         'user_id': str(user_id),
-        'exp': datetime.utcnow() + timedelta(days=7),
+        'exp': datetime.utcnow() + expires_in,
         'iat': datetime.utcnow()
     }
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')

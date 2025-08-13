@@ -58,7 +58,7 @@ export default function RegisterPage() {
     try {
       const result = await apiService.checkEmailExists(email)
       if (result.data) {
-        setEmailExists(result.data.exists)
+        setEmailExists((result.data as any).exists)
       }
     } catch (error) {
       console.error("Email check failed:", error)

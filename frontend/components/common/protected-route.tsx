@@ -16,11 +16,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
-    console.log('ProtectedRoute: Auth state changed - user:', !!user, 'loading:', loading)
     
     // If not loading and no user, redirect to login
     if (!loading && !user && !isRedirecting) {
-      console.log('ProtectedRoute: Redirecting to login...')
       setIsRedirecting(true)
       router.replace("/auth/login")
     }
@@ -28,7 +26,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Show loading state while auth is being checked
   if (loading) {
-    console.log('ProtectedRoute: Showing loading state')
     // Check if there's stored auth data to show appropriate message
     const hasStoredAuth = typeof window !== 'undefined' && 
                          localStorage.getItem('token') && 
@@ -48,7 +45,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // If no user after loading, show redirecting state
   if (!user) {
-    console.log('ProtectedRoute: No user, showing redirect state')
     return (
           <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
@@ -59,7 +55,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  console.log('ProtectedRoute: User authenticated, rendering protected content')
   // User is authenticated, render the protected content
   return <>{children}</>
 }

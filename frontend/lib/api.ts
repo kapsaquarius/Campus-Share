@@ -74,11 +74,7 @@ class ApiService {
     })
   }
 
-  async updateProfile(token: string, profileData: {
-    name?: string
-    phone?: string
-    whatsapp?: string
-  }) {
+  async updateProfile(token: string, profileData: any) {
     return this.request('/auth/profile', {
       method: 'PUT',
       headers: {
@@ -121,7 +117,7 @@ class ApiService {
   }
 
   async checkEmailExists(email: string) {
-    return this.request('/auth/check-email', {
+    return this.request<{ exists: boolean; email: string }>('/auth/check-email', {
       method: 'POST',
       body: JSON.stringify({ email }),
     })

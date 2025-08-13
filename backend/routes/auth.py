@@ -32,8 +32,8 @@ def register():
             whatsapp=data['whatsapp']
         )
         
-        # Create JWT token
-        token = create_jwt_token(user['_id'])
+        # Create JWT token (30 min expiry)
+        token = create_jwt_token(user['_id'], expires_in_minutes=30)
         
         return jsonify({
             "message": "User registered successfully",
@@ -59,8 +59,8 @@ def login():
         if not user:
             return jsonify({"error": "Invalid username or password"}), 401
         
-        # Create JWT token
-        token = create_jwt_token(user['_id'])
+        # Create JWT token (30 min expiry)
+        token = create_jwt_token(user['_id'], expires_in_minutes=30)
         
         return jsonify({
             "message": "Login successful",
