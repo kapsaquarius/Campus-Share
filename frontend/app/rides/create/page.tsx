@@ -172,6 +172,8 @@ export default function CreateRidePage() {
       formData.travelDate &&
       formData.startingFrom.trim() &&
       formData.goingTo.trim() &&
+      validSelections.startingFrom &&
+      validSelections.goingTo &&
       formData.departureStartTime &&
       formData.departureEndTime &&
       formData.availableSeats > 0 &&
@@ -184,10 +186,14 @@ export default function CreateRidePage() {
 
     if (!formData.startingFrom) {
       newErrors.startingFrom = "Starting location is required"
+    } else if (!validSelections.startingFrom) {
+      newErrors.startingFrom = "Please select a location from the dropdown"
     }
 
     if (!formData.goingTo) {
       newErrors.goingTo = "Destination is required"
+    } else if (!validSelections.goingTo) {
+      newErrors.goingTo = "Please select a location from the dropdown"
     }
 
     if (formData.startingFrom === formData.goingTo) {

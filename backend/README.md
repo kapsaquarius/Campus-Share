@@ -1,6 +1,6 @@
 # CampusShare Backend
 
-The backend API for CampusShare, a student ride-sharing platform built with Flask and MongoDB Atlas with integrated email notifications.
+The backend API for CampusShare, a student ride-sharing and roommate-matching platform built with Flask and MongoDB Atlas with integrated email notifications.
 
 ## 🚀 Quick Setup
 
@@ -18,7 +18,7 @@ The script will:
 - ✅ Create Python virtual environment
 - ✅ Install all dependencies
 - ✅ Set up environment variables
-- ✅ Initialize cloud database with proper indexes
+- ✅ Initialize cloud database with proper indexes (rides, roommates, notifications)
 - ✅ Load location data from CSV
 - ✅ Configure email service
 - ✅ Verify the complete setup
@@ -101,6 +101,7 @@ backend/
 │   ├── location_service/
 │   ├── notification_service/
 │   ├── ride_service/
+│   ├── roommate_service/
 │   ├── user_service/
 │   └── email_service/    # Email notification service
 │
@@ -125,6 +126,8 @@ The application uses MongoDB Atlas (cloud) with the following collections:
 - **locations** - US ZIP codes, cities, and states (39k+ records)
 - **ride_posts** - Ride offers from drivers
 - **ride_interests** - Join requests from passengers
+- **roommate_posts** - Room/roommate listings
+- **roommate_interests** - Interest records for roommate listings
 - **notifications** - System notifications
 
 See [database.md](./database.md) for detailed schema documentation.
@@ -145,6 +148,16 @@ See [database.md](./database.md) for detailed schema documentation.
 - `DELETE /api/rides/{id}/interest` - Remove interest
 - `GET /api/rides/my-interested` - Get rides user is interested in
 
+### Roommates
+- `GET /api/roommates/search` - Search roommate listings
+- `POST /api/roommates` - Create new roommate listing
+- `GET /api/roommates/my-listings` - Get user's roommate listings
+- `GET /api/roommates/my-interested` - Get roommate listings user is interested in
+- `POST /api/roommates/{id}/interest` - Express interest in a listing
+- `DELETE /api/roommates/{id}/interest` - Remove interest from a listing
+- `PUT /api/roommates/{id}` - Update listing (owner only)
+- `DELETE /api/roommates/{id}` - Delete listing (owner only)
+
 ### Locations
 - `GET /api/locations/search` - Search locations by query
 
@@ -163,7 +176,7 @@ Create a `.env` file in the backend directory:
 # Database (MongoDB Atlas)
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=campus-share
 
-# Security  
+# Security
 SECRET_KEY=your-super-secret-key-here
 
 # CORS (Frontend URL)
@@ -186,7 +199,7 @@ FRONTEND_URL=http://localhost:3000
 ### Database Configuration
 - **Platform**: MongoDB Atlas (Cloud)
 - **Database Name**: `campus-share`
-- **Collections**: 5 (users, locations, ride_posts, ride_interests, notifications)
+- **Collections**: 7 (users, locations, ride_posts, ride_interests, roommate_posts, roommate_interests, notifications)
 - **Indexes**: Optimized for search performance
 
 ### Email Configuration

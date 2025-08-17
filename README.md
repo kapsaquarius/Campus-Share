@@ -1,6 +1,6 @@
-# 🚗 CampusShare
+# 🚗🏠 CampusShare
 
-> **Connecting students for seamless ride-sharing across campus communities**
+> **Connecting students for seamless ride-sharing and roommate matching across campus communities**
 
 ![CampusShare](https://img.shields.io/badge/Platform-Student%20Ride%20Sharing-blue?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-green?style=for-the-badge)
@@ -10,7 +10,10 @@
 
 ## 🌟 **What is CampusShare?**
 
-CampusShare is a modern, student-focused ride-sharing platform designed to make campus transportation easier, more affordable, and environmentally friendly. Built specifically for college communities, it connects students who need rides with those who have cars, fostering both convenience and campus connections.
+CampusShare is a modern, student-focused ride-sharing and roommate-matching platform designed to make campus life easier, more affordable, and community-driven. Built specifically for college communities, it connects:
+
+- Students who need rides with students who can offer them
+- Students seeking rooms with students offering rooms
 
 Whether you're heading home for the weekend, going to the airport, or need a ride to that off-campus event, CampusShare helps you find fellow students traveling the same route.
 
@@ -34,6 +37,12 @@ Whether you're heading home for the weekend, going to the airport, or need a rid
 - **Long & Short Distance** - From campus shuttles to cross-country trips
 
 ### 📱 **User-Friendly Experience**
+### 🏠 **Roommate Matching (New)**
+- Room/Roommate listings (offer/seek) with detailed preferences
+- Budget range slider, room type, furnished, pets, smoking, dietary, sleep schedule, guests/week
+- Exact address support for offers
+- Smart search with token-based fuzzy matching and move-in window
+- Express/remove interest with in-app and email notifications
 - **Intuitive Interface** - Clean, modern design that's easy to navigate
 - **Mobile Responsive** - Works seamlessly on phones, tablets, and desktops
 - **Real-time Notifications** - Stay updated on ride requests and changes
@@ -91,8 +100,8 @@ Comprehensive ride management:
 
 ### **Backend**
 - **Framework**: Flask (Python)
-- **Database**: MongoDB for flexible data storage
-- **Authentication**: JWT tokens for secure access
+- **Database**: MongoDB (users, locations, ride_posts, ride_interests, roommate_posts, roommate_interests, notifications)
+- **Authentication**: JWT tokens (30-minute session expiry, auto-logout on frontend)
 - **API**: RESTful endpoints with comprehensive error handling
 
 ### **Infrastructure**
@@ -125,6 +134,7 @@ Comprehensive ride management:
 | **Locations Supported** | 39,493 US cities and ZIP codes |
 | **User Types** | Students with verified accounts |
 | **Ride Types** | All distances - campus shuttles to road trips |
+| **Roommate Types** | Offers and seekers with lifestyle preferences |
 | **Platform** | Web application (mobile responsive) |
 | **Cost Model** | Free platform with optional cost-sharing |
 

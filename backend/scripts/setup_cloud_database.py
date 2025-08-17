@@ -298,6 +298,74 @@ def create_ride_interests_collection(db):
         if "already exists" not in str(e):
             print(f"⚠️  Ride interests index warning: {e}")
 
+def create_roommate_posts_collection(db):
+    """Create roommate_posts collection with indexes"""
+    print("\n🏠 Setting up Roommate Posts collection...")
+    posts = db.roommate_posts
+    try:
+        # User and status
+        posts.create_index([("userId", ASCENDING)], name="user_id_idx")
+        posts.create_index([("status", ASCENDING)], name="status_idx")
+        posts.create_index([("createdAt", DESCENDING)], name="created_at_desc_idx")
+
+        # Core search fields
+        posts.create_index([("type", ASCENDING)], name="type_idx")
+        posts.create_index([("location", ASCENDING)], name="location_idx")
+        posts.create_index([("moveInEarliest", ASCENDING)], name="move_in_earliest_idx")
+        posts.create_index([("budgetMin", ASCENDING)], name="budget_min_idx")
+        posts.create_index([("budgetMax", ASCENDING)], name="budget_max_idx")
+        posts.create_index([("roomType", ASCENDING)], name="room_type_idx")
+        posts.create_index([("furnished", ASCENDING)], name="furnished_idx")
+        posts.create_index([("petFriendly", ASCENDING)], name="pet_friendly_idx")
+        posts.create_index([("smokerOk", ASCENDING)], name="smoker_ok_idx")
+        posts.create_index([("dietaryPreference", ASCENDING)], name="dietary_idx")
+        posts.create_index([("sleepSchedule", ASCENDING)], name="sleep_schedule_idx")
+        posts.create_index([("guestsPerWeek", ASCENDING)], name="guests_per_week_idx")
+
+        # Compound patterns used by search
+        posts.create_index([
+            ("status", ASCENDING),
+            ("type", ASCENDING),
+            ("location", ASCENDING)
+        ], name="status_type_location_idx")
+
+        posts.create_index([
+            ("status", ASCENDING),
+            ("moveInEarliest", ASCENDING)
+        ], name="status_movein_idx")
+    except OperationFailure as e:
+        if "already exists" not in str(e):
+            print(f"⚠️  Roommate posts index warning: {e}")
+
+def create_roommate_interests_collection(db):
+    """Create roommate_interests collection with indexes"""
+    print("\n🤝 Setting up Roommate Interests collection...")
+    interests = db.roommate_interests
+    try:
+        interests.create_index([("postId", ASCENDING)], name="post_id_idx")
+        interests.create_index([("interestedUserId", ASCENDING)], name="interested_user_id_idx")
+        interests.create_index([("status", ASCENDING)], name="status_idx")
+        interests.create_index([("createdAt", DESCENDING)], name="created_at_desc_idx")
+
+        # Prevent duplicate interest
+        interests.create_index([
+            ("postId", ASCENDING),
+            ("interestedUserId", ASCENDING)
+        ], unique=True, name="post_user_unique")
+
+        # Common query patterns
+        interests.create_index([
+            ("interestedUserId", ASCENDING),
+            ("status", ASCENDING)
+        ], name="user_status_idx")
+        interests.create_index([
+            ("postId", ASCENDING),
+            ("status", ASCENDING)
+        ], name="post_status_idx")
+    except OperationFailure as e:
+        if "already exists" not in str(e):
+            print(f"⚠️  Roommate interests index warning: {e}")
+
 def create_notifications_collection(db):
     """Create notifications collection with indexes"""
     print("\n🔔 Setting up Notifications collection...")
@@ -495,7 +563,7 @@ def verify_database_setup(db):
     """Verify that database setup is complete and functional"""
     print("\n🔍 Verifying database setup...")
     
-    collections = ['users', 'locations', 'ride_posts', 'ride_interests', 'notifications']
+    collections = ['users', 'locations', 'ride_posts', 'ride_interests', 'roommate_posts', 'roommate_interests', 'notifications']
     
     for collection_name in collections:
         collection = db[collection_name]
@@ -573,6 +641,8 @@ def main():
         create_locations_collection(db)
         create_ride_posts_collection(db)
         create_ride_interests_collection(db)
+        create_roommate_posts_collection(db)
+        create_roommate_interests_collection(db)
         create_notifications_collection(db)
         
         # Load location data

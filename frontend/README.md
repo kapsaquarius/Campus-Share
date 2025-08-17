@@ -1,6 +1,6 @@
 # CampusShare Frontend
 
-The frontend application for CampusShare, a student ride-sharing platform built with Next.js, React, TypeScript, and Tailwind CSS.
+The frontend application for CampusShare, a student ride-sharing and roommate-matching platform built with Next.js, React, TypeScript, and Tailwind CSS.
 
 ## 🚀 Quick Setup
 
@@ -79,6 +79,7 @@ frontend/
 │   │   ├── my-interested/ # Rides user is interested in
 │   │   └── page.tsx       # Ride search page
 │   ├── notifications/     # Notifications page
+│   ├── roommates/         # Roommate pages (search, create, my-listings, my-interests)
 │   ├── profile/           # User profile page
 │   ├── help/              # Help/FAQ page
 │   ├── contact/           # Contact page
@@ -179,8 +180,17 @@ apiService.getMyRides(token)
 apiService.expressInterest(token, rideId)
 apiService.removeInterest(token, rideId)
 
+// Roommates
+apiService.searchRoommates(token, searchParams)
+apiService.createRoommate(token, listingData)
+apiService.getMyRoommateListings(token)
+apiService.getMyRoommateMatches(token)
+apiService.getMyInterestedRoommates(token)
+apiService.expressRoommateInterest(token, listingId)
+apiService.removeRoommateInterest(token, listingId)
+
 // Locations
-apiService.searchLocations(query)
+apiService.getLocations(query)
 
 // Notifications
 apiService.getNotifications(token)
@@ -188,7 +198,7 @@ apiService.markNotificationAsRead(token, notificationId)
 ```
 
 ### Authentication Flow
-1. User registers/logs in → receives JWT token
+1. User registers/logs in → receives JWT token (30-minute expiry)
 2. Token stored in localStorage and AuthContext
 3. Protected routes check authentication status
 4. API requests include Authorization header
@@ -197,7 +207,7 @@ apiService.markNotificationAsRead(token, notificationId)
 
 ### 🔐 Authentication
 - **User Registration** - Create new account with email validation and required field indicators
-- **Login/Logout** - Secure authentication with JWT tokens
+- **Login/Logout** - Secure authentication with JWT tokens (auto logout on expiry)
 - **Profile Management** - Update user information and contact details with real-time validation
 - **Protected Routes** - Enhanced route protection with improved loading states
 
@@ -256,6 +266,13 @@ apiService.markNotificationAsRead(token, notificationId)
 - **Interest Count** - Real-time interest counter updates
 - **Email Integration** - Coordinated with backend email notifications
 
+### 🏠 Roommate Matching (New)
+- Search roommate listings with filters (budget range, lifestyle preferences)
+- Create listings (offer/seek) with exact address (offer only)
+- Express/remove interest with in-app and email notifications
+- Manage My Listings with edit/delete and interested users modal
+- View My Roommate Interests with poster contact details
+
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -287,6 +304,16 @@ Rides:
 - POST /api/rides/{id}/interest
 - DELETE /api/rides/{id}/interest
 - GET /api/rides/my-interested
+
+Roommates:
+- GET /api/roommates/search
+- POST /api/roommates
+- GET /api/roommates/my-listings
+- GET /api/roommates/my-interested
+- POST /api/roommates/{id}/interest
+- DELETE /api/roommates/{id}/interest
+- PUT /api/roommates/{id}
+- DELETE /api/roommates/{id}
 
 Locations:
 - GET /api/locations/search

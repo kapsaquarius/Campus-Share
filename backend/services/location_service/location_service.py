@@ -8,45 +8,105 @@ class LocationService:
         self.locations = get_collection('locations')
     
     def search_locations(self, query: str, limit: int = 10) -> List[Dict]:
-        """Search locations by ZIP code, city, or state - this is what users need"""
-        # Create search query
+        """Search locations by ZIP code, city, or state with smart ranking.
+        Prioritize exact/prefix city matches (e.g., "New York, NY") over broad state matches (e.g., any city in New York state).
+        """
+        q = (query or '').strip()
+        if not q:
+            return []
+
+        # Base filter to keep results relevant but allow ranking in Python
+        # We search a superset and then rank/deduplicate
         search_query = {
             '$or': [
-                {'zipCode': {'$regex': query, '$options': 'i'}},
-                {'city': {'$regex': query, '$options': 'i'}},
-                {'state': {'$regex': query, '$options': 'i'}},
-                {'stateName': {'$regex': query, '$options': 'i'}},
-                # Free-form support like "Washington DC" or "New York NY"
+                {'zipCode': {'$regex': q, '$options': 'i'}},
+                {'city': {'$regex': q, '$options': 'i'}},
+                {'state': {'$regex': q, '$options': 'i'}},
+                {'stateName': {'$regex': q, '$options': 'i'}},
                 {'$expr': {'$regexMatch': {
                     'input': {'$concat': ['$city', ' ', '$state']},
-                    'regex': query,
+                    'regex': q,
                     'options': 'i'
                 }}},
                 {'$expr': {'$regexMatch': {
                     'input': {'$concat': ['$city', ', ', '$state']},
-                    'regex': query,
+                    'regex': q,
                     'options': 'i'
                 }}},
                 {'$expr': {'$regexMatch': {
                     'input': {'$concat': ['$city', ', ', '$stateName']},
-                    'regex': query,
+                    'regex': q,
                     'options': 'i'
                 }}},
                 {'$expr': {'$regexMatch': {
                     'input': {'$concat': ['$city', ' ', '$stateName']},
-                    'regex': query,
+                    'regex': q,
                     'options': 'i'
                 }}}
             ]
         }
-        
-        # Find locations
-        locations = list(self.locations.find(search_query).sort([
-            ('city', 1),
-            ('state', 1)
-        ]).limit(limit))
-        
-        return self._format_locations(locations)
+
+        # Fetch a broader set and rank locally; 250 is a balance of relevance and performance
+        raw_results = list(self.locations.find(search_query).limit(250))
+
+        q_lower = q.lower()
+        words = [w for w in re.split(r"\s+", q_lower) if len(w) >= 2]
+
+        def score(loc: Dict) -> int:
+            city = str(loc.get('city', '')).lower()
+            state = str(loc.get('state', '')).lower()
+            state_name = str(loc.get('stateName', '')).lower()
+
+            display_variants = [
+                f"{city}",
+                f"{city} {state}", f"{city}, {state}",
+                f"{city} {state_name}", f"{city}, {state_name}"
+            ]
+
+            s = 0
+
+            # Highest priority: exact city match
+            if city == q_lower:
+                s += 1000
+            # Prefix city match
+            if city.startswith(q_lower):
+                s += 800
+            # Exact combined matches
+            if any(variant == q_lower for variant in display_variants):
+                s += 700
+            # City contains
+            if q_lower in city:
+                s += 500
+            # All words present in city (multi-word support like "new york")
+            if words and all(w in city for w in words):
+                s += 400
+            # State exact/prefix/contains (lower priority)
+            if q_lower == state or q_lower == state_name:
+                s += 120
+            if state.startswith(q_lower) or state_name.startswith(q_lower):
+                s += 80
+            if q_lower in state or q_lower in state_name:
+                s += 60
+
+            # Minor tie-breaker: shorter city names and alphabetical
+            s += max(0, 50 - len(city))
+            return s
+
+        # Rank and deduplicate by city+state so we don't flood results with many ZIPs of the same city
+        ranked = sorted(raw_results, key=score, reverse=True)
+
+        seen_keys = set()
+        unique_city_state = []
+        for loc in ranked:
+            key = (str(loc.get('city', '')).lower(), str(loc.get('state', '')).lower())
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unique_city_state.append(loc)
+            if len(unique_city_state) >= limit:
+                break
+
+        return self._format_locations(unique_city_state)
     
     def _get_word_conditions(self, query: str) -> List[Dict]:
         """Generate word-based search conditions for multi-word queries"""
