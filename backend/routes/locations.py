@@ -1,60 +1,52 @@
-from flask import Blueprint, request, jsonify
-from routes.auth import get_current_user
+from flask import Blueprint, request
 from services.location_service import location_service
 from scripts.database import get_collection, format_object_id
+from utils.common import ResponseFormatter, handle_exceptions
 
-locations_bp = Blueprint('locations', __name__)
+locations_bp = Blueprint("locations", __name__)
 
-@locations_bp.route('/', methods=['GET'])
+
+@locations_bp.route("/", methods=["GET"])
+@handle_exceptions
 def get_locations():
     """Get all locations"""
-    try:
-        locations_collection = get_collection('locations')
-        locations = list(locations_collection.find().limit(100).sort('city', 1))
-        
-        # Format locations for response
-        formatted_locations = []
-        for location in locations:
-            formatted_location = format_object_id(location)
-            formatted_locations.append(formatted_location)
-        
-        return jsonify({
-            'locations': formatted_locations,
-            'total': len(formatted_locations)
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': f'Failed to get locations: {str(e)}'}), 500
+    locations_collection = get_collection("locations")
+    locations = list(locations_collection.find().limit(100).sort("city", 1))
 
-@locations_bp.route('/search', methods=['GET'])
+    formatted_locations = [format_object_id(location) for location in locations]
+
+    return ResponseFormatter.success(
+        {"locations": formatted_locations, "total": len(formatted_locations)}
+    )
+
+
+@locations_bp.route("/search", methods=["GET"])
+@handle_exceptions
 def search_locations():
     """Search locations - this is what users need for ride search"""
-    try:
-        query = request.args.get('q', '').strip()
-        limit = int(request.args.get('limit', 10))
-        
-        # Frontend handles validation, proceed directly
-        locations = location_service.search_locations(query, limit)
-        
-        return jsonify({
-            'locations': locations,
-            'total': len(locations),
-            'query': query
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    query = request.args.get("q", "").strip()
+    limit = int(request.args.get("limit", 10))
 
-@locations_bp.route('/<location_id>', methods=['GET'])
+    # Ensure reasonable limit
+    limit = min(max(1, limit), 100)  # Cap between 1 and 100
+
+    locations = location_service.search_locations(query, limit)
+
+    return ResponseFormatter.success(
+        {"locations": locations, "total": len(locations), "query": query}
+    )
+
+
+@locations_bp.route("/<location_id>", methods=["GET"])
+@handle_exceptions
 def get_location(location_id):
     """Get a specific location by ID - needed for ride references"""
-    try:
-        location = location_service.get_location_by_id(location_id)
-        
-        if not location:
-            return jsonify({'error': 'Location not found'}), 404
-        
-        return jsonify(location), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500 
+    if not location_id.strip():
+        return ResponseFormatter.error("Location ID is required", 400)
+
+    location = location_service.get_location_by_id(location_id)
+
+    if not location:
+        return ResponseFormatter.error("Location not found", 404)
+
+    return ResponseFormatter.success(location)

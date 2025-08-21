@@ -1,18 +1,16 @@
 # CampusShare Database Documentation
 
-**Version:** 2.0  
-**Last Updated:** August 2025  
-**Application:** CampusShare Ride-Sharing Platform
+**Application:** CampusShare - Student Ride Sharing & Roommate Matching Platform
 
 ## Overview
 
-CampusShare is a focused ride-sharing platform for students. This document describes the MongoDB database schema, collections, and data structures used in the application.
+CampusShare is a comprehensive platform for students offering both ride-sharing and roommate matching services. This document describes the MongoDB database schema, collections, and data structures used in the application.
 
 ## Database Information
 
 - **Database Type:** MongoDB
 - **Connection:** Configured via `MONGODB_URI` environment variable
-- **Collections:** 5 active collections
+- **Collections:** 7 active collections
 - **Total Documents:** ~39,500+ documents (primarily location data)
 
 ## Collections Reference
@@ -28,7 +26,7 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 {
   _id: ObjectId,                    // Primary key
   username: String,                 // Unique username for login
-  email: String,                    // Unique email address  
+  email: String,                    // Email address (indexed, not unique)  
   name: String,                     // User's full name
   password: String,                 // Hashed password (bcrypt)
   phone: String,                    // Contact phone number with country code
@@ -54,7 +52,8 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 
 **Indexes:**
 - `username` (unique)
-- `email` (unique)
+- `email` (non-unique, for lookups)
+- `createdAt` (descending, for sorting)
 
 ---
 
@@ -72,6 +71,7 @@ CampusShare is a focused ride-sharing platform for students. This document descr
   city: String,                     // City name (e.g., "Moody")
   state: String,                    // 2-letter state code (e.g., "AL")
   stateName: String,                // Full state name (e.g., "Alabama")
+  displayName: String,              // Formatted display name (e.g., "Moody, AL")
   createdAt: Date,                  // Record creation timestamp
   updatedAt: Date                   // Last update timestamp
 }
@@ -85,6 +85,7 @@ CampusShare is a focused ride-sharing platform for students. This document descr
   "city": "Moody", 
   "state": "AL",
   "stateName": "Alabama",
+  "displayName": "Moody, AL",
   "createdAt": "2025-08-01T23:17:47.969Z",
   "updatedAt": "2025-08-01T23:17:47.969Z"
 }
@@ -94,7 +95,11 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 - `zipCode` (unique)
 - `city`
 - `state`
+- `stateName`
+- `displayName`
 - `[city, state]` (compound index for location searches)
+- `[state, city]` (compound index for reverse searches)
+- Text search index on `[city, stateName, zipCode]`
 
 **Note:** Contains 39,493+ location records covering comprehensive US geography.
 
@@ -147,12 +152,18 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 ```
 
 **Indexes:**
-- `userId` (for finding user's rides)
-- `startingFrom` (for origin searches)
-- `goingTo` (for destination searches)
-- `travelDate` (for date-based searches)
-- `status` (for filtering active rides)
-- `createdAt` (for sorting by creation time)
+- `userId`
+- `startingFrom`
+- `goingTo` 
+- `travelDate`
+- `status`
+- `seatsRemaining`
+- `createdAt` (descending)
+- `[status, travelDate]`
+- `[status, travelDate, seatsRemaining]`
+- `[userId, status]`
+- `[startingFrom, travelDate]`
+- `[goingTo, travelDate]`
 
 **Status Values:**
 - `active`: Ride is available for booking
@@ -190,20 +201,149 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 ```
 
 **Indexes:**
-- `rideId` (for finding interests for a specific ride)
-- `interestedUserId` (for finding user's interests)
+- `rideId`
+- `interestedUserId`
+- `status`
+- `createdAt` (descending)
 - `[rideId, interestedUserId]` (compound unique index to prevent duplicate interests)
+- `[interestedUserId, status]`
+- `[rideId, status]`
 
 **Status Values:**
 - `interested`: User has expressed interest
-- `confirmed`: Interest has been confirmed by driver
+- `confirmed`: Interest has been confirmed by driver  
 - `cancelled`: Interest has been withdrawn
 
 ---
 
-### 5. Notifications Collection
+### 5. Roommate Posts Collection
 
-**Purpose:** System notifications for ride-related events.
+**Purpose:** Roommate listing posts for students seeking or offering housing.
+
+**Collection Name:** `roommate_posts`
+
+**Schema:**
+```javascript
+{
+  _id: ObjectId,                    // Primary key
+  userId: ObjectId,                 // Reference to Users collection
+  type: String,                     // "offer" or "seek"
+  location: String,                 // General location/area
+  exactAddress: String,             // Specific address (optional)
+  moveInEarliest: String,           // Earliest move-in date (YYYY-MM-DD)
+  budgetMin: Number,                // Minimum budget (USD/month)
+  budgetMax: Number,                // Maximum budget (USD/month)
+  roomType: String,                 // Type of room/housing
+  furnished: Boolean,               // Whether furnished
+  petFriendly: Boolean,             // Pet-friendly
+  smokerOk: Boolean,                // Smoking allowed
+  dietaryPreference: String,        // Dietary preferences
+  sleepSchedule: String,            // Sleep schedule preference
+  guestsPerWeek: Number,            // Guest frequency preference
+  additionalDetails: String,        // Additional notes
+  status: String,                   // "active", "cancelled", "completed"
+  createdAt: Date,                  // Post creation timestamp
+  updatedAt: Date                   // Last modification timestamp
+}
+```
+
+**Sample Document:**
+```json
+{
+  "_id": "688d7abc6839853006a30d45",
+  "userId": "688d4bdb01faee5e370947fc",
+  "type": "seek",
+  "location": "State College, PA",
+  "exactAddress": null,
+  "moveInEarliest": "2025-08-15",
+  "budgetMin": 400,
+  "budgetMax": 800,
+  "roomType": "single",
+  "furnished": true,
+  "petFriendly": false,
+  "smokerOk": false,
+  "dietaryPreference": "vegetarian",
+  "sleepSchedule": "early",
+  "guestsPerWeek": 2,
+  "additionalDetails": "Quiet, studious environment preferred",
+  "status": "active",
+  "createdAt": "2025-08-02T02:45:32.123Z",
+  "updatedAt": "2025-08-02T02:45:32.123Z"
+}
+```
+
+**Indexes:**
+- `userId`
+- `status`
+- `type`
+- `location`
+- `moveInEarliest`
+- `budgetMin`
+- `budgetMax`
+- `roomType`
+- `furnished`
+- `petFriendly`
+- `smokerOk`
+- `dietaryPreference`
+- `sleepSchedule`
+- `guestsPerWeek`
+- `createdAt` (descending)
+- `[status, type, location]`
+- `[status, moveInEarliest]`
+
+**Type Values:**
+- `offer`: User has a room/place to offer
+- `seek`: User is seeking a room/roommate
+
+---
+
+### 6. Roommate Interests Collection
+
+**Purpose:** Tracks user interest in specific roommate listings.
+
+**Collection Name:** `roommate_interests`
+
+**Schema:**
+```javascript
+{
+  _id: ObjectId,                    // Primary key
+  postId: ObjectId,                 // Reference to roommate_posts collection
+  interestedUserId: ObjectId,       // Reference to Users collection (interested user)
+  status: String,                   // "interested", "confirmed", "cancelled"
+  createdAt: Date                   // Interest registration timestamp
+}
+```
+
+**Sample Document:**
+```json
+{
+  "_id": "688d7bcd6839853006a30d52",
+  "postId": "688d7abc6839853006a30d45",
+  "interestedUserId": "688d4c0601faee5e370947ff",
+  "status": "interested",
+  "createdAt": "2025-08-02T02:50:21.456Z"
+}
+```
+
+**Indexes:**
+- `postId`
+- `interestedUserId`
+- `status`
+- `createdAt` (descending)
+- `[postId, interestedUserId]` (compound unique index to prevent duplicate interests)
+- `[interestedUserId, status]`
+- `[postId, status]`
+
+**Status Values:**
+- `interested`: User has expressed interest
+- `confirmed`: Interest has been confirmed by poster
+- `cancelled`: Interest has been withdrawn
+
+---
+
+### 7. Notifications Collection
+
+**Purpose:** System notifications for ride and roommate related events.
 
 **Collection Name:** `notifications`
 
@@ -215,7 +355,7 @@ CampusShare is a focused ride-sharing platform for students. This document descr
   type: String,                     // Notification type
   title: String,                    // Notification title
   message: String,                  // Notification content
-  relatedId: ObjectId,              // Reference to related entity (ride, etc.)
+  relatedId: ObjectId,              // Reference to related entity (ride, roommate post, etc.)
   read: Boolean,                    // Read status (default: false)
   createdAt: Date                   // Notification creation timestamp
 }
@@ -236,62 +376,66 @@ CampusShare is a focused ride-sharing platform for students. This document descr
 ```
 
 **Indexes:**
-- `userId` (for finding user's notifications)
-- `read` (for filtering unread notifications)
-- `createdAt` (for chronological ordering)
+- `userId`
+- `read`
+- `type`
+- `relatedId`
+- `createdAt` (descending)
+- `[userId, read]`
+- `[userId, createdAt]` (descending)
+- `[userId, read, createdAt]` (descending)
 
 **Notification Types:**
+
+**Ride Notifications:**
 - `ride_interest`: New user interested in a ride
 - `ride_interest_removed`: User no longer interested in a ride
 - `ride_update`: Ride details have been updated
-- `ride_cancellation`: Ride has been cancelled
+- `ride_cancelled`: Ride has been cancelled
+
+**Roommate Notifications:**
+- `roommate_interest`: New user interested in a roommate listing
+- `roommate_interest_removed`: User no longer interested in a roommate listing
+- `roommate_update`: Roommate listing details have been updated
+- `roommate_cancelled`: Roommate listing has been cancelled
 
 ## Data Relationships
 
 ```
 Users (1) ────→ (many) Ride Posts
 Users (1) ────→ (many) Ride Interests  
+Users (1) ────→ (many) Roommate Posts
+Users (1) ────→ (many) Roommate Interests
 Users (1) ────→ (many) Notifications
 
 Ride Posts (1) ────→ (many) Ride Interests
 Ride Posts (1) ────→ (many) Notifications
 
+Roommate Posts (1) ────→ (many) Roommate Interests
+Roommate Posts (1) ────→ (many) Notifications
+
 Locations ←─── Referenced by ─── Search/Display Logic
 ```
-
-## Database Statistics
-
-| Collection | Document Count | Average Size | Purpose |
-|------------|----------------|--------------|---------|
-| users | 8 | ~200 bytes | User accounts |
-| locations | 39,493 | ~150 bytes | Location reference data |
-| ride_posts | 1+ | ~400 bytes | Active ride offerings |
-| ride_interests | 2+ | ~100 bytes | Join requests |
-| notifications | 21+ | ~300 bytes | System notifications |
 
 ## Configuration
 
 ### Database Connection
 ```javascript
 // Configured via environment variable
-MONGODB_URI=mongodb://localhost:27017/campusshare
+MONGODB_URI=mongodb://localhost:27017/campus-share
+// or
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/campus-share
 ```
 
 ### Collection Creation
-Collections are created automatically when first accessed. Indexes are created via the `create_indexes()` function in `scripts/database.py`.
+Collections are created automatically when first accessed. Indexes are created via the database setup functions in `scripts/setup_cloud_database.py`.
 
-## Maintenance Notes
+### Setup Script
+Run the database setup script to create all collections and indexes:
+```bash
+python scripts/setup_cloud_database.py
+```
 
-- **Location Data**: Pre-loaded with comprehensive US ZIP code data
-- **Cleanup**: Empty collections should be dropped periodically
-- **Indexing**: Indexes are critical for search performance
-- **Backups**: Regular backups recommended for user data
 
-## Version History
 
-- **v2.0 (August 2025)**: Streamlined to ride-sharing only, removed reviews/roommates/subleases
-- **v1.0 (July 2025)**: Initial multi-feature platform
 
----
-
-*This documentation reflects the current production database schema for CampusShare v2.0*

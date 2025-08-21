@@ -1,53 +1,31 @@
 from datetime import datetime
 from scripts.database import get_collection
-from services.location_service import location_service
-import re
+from utils.matching_utils import MatchingHelper
 
+
+# Backward compatibility - use common matching utilities
 def _tokens(s: str):
-    return [t for t in re.findall(r"[A-Za-z0-9]+", (s or '').lower()) if len(t) >= 2]
+    return MatchingHelper.tokenize_text(s)
 
-def calculate_time_overlap(driver_start_time, driver_end_time, rider_start_time, rider_end_time):
+
+def calculate_time_overlap(
+    driver_start_time, driver_end_time, rider_start_time, rider_end_time
+):
     """Calculate overlap between driver's time range and rider's preferred time"""
-    # Convert time strings to minutes for easier comparison
-    def time_to_minutes(time_str):
-        hours, minutes = map(int, time_str.split(':'))
-        return hours * 60 + minutes
-    
-    driver_start_min = time_to_minutes(driver_start_time)
-    driver_end_min = time_to_minutes(driver_end_time)
-    rider_start_min = time_to_minutes(rider_start_time)
-    rider_end_min = time_to_minutes(rider_end_time)
-    
-    # Calculate overlap
-    overlap_start = max(driver_start_min, rider_start_min)
-    overlap_end = min(driver_end_min, rider_end_min)
-    
-    if overlap_start >= overlap_end:
-        return 0.0
-    
-    overlap_duration = overlap_end - overlap_start
-    total_duration = min(driver_end_min - driver_start_min, rider_end_min - rider_start_min)
-    
-    return overlap_duration / total_duration if total_duration > 0 else 0.0
+    return MatchingHelper.calculate_time_overlap(
+        driver_start_time, driver_end_time, rider_start_time, rider_end_time
+    )
+
 
 def validate_time_format(time_str):
     """Validate time format (HH:MM in 24-hour format)"""
-    import re
-    pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
-    if not re.match(pattern, time_str):
-        return False
-    return True
+    return MatchingHelper.validate_time_format(time_str)
+
 
 def is_valid_time_range(start_time, end_time):
     """Check if start time is before end time"""
-    def time_to_minutes(time_str):
-        hours, minutes = map(int, time_str.split(':'))
-        return hours * 60 + minutes
-    
-    start_min = time_to_minutes(start_time)
-    end_min = time_to_minutes(end_time)
-    
-    return start_min < end_min
+    return MatchingHelper.is_valid_time_range(start_time, end_time)
+
 
 def calculate_location_match_score(ride, search_criteria):
     """Simplified fuzzy token-based location match score"""
@@ -55,311 +33,304 @@ def calculate_location_match_score(ride, search_criteria):
     destination_score = 0.0
 
     # Starting location
-    if search_criteria.get('startingFrom'):
-        crit_tokens = _tokens(search_criteria['startingFrom'])
-        field_val = (ride.get('startingFrom') or '').lower()
+    if search_criteria.get("startingFrom"):
+        crit_tokens = _tokens(search_criteria["startingFrom"])
+        field_val = (ride.get("startingFrom") or "").lower()
         if all(t in field_val for t in crit_tokens):
-            starting_score = 1.0 if field_val.strip() == search_criteria['startingFrom'].strip().lower() else 0.9
+            starting_score = (
+                1.0
+                if field_val.strip() == search_criteria["startingFrom"].strip().lower()
+                else 0.9
+            )
 
     # Destination
-    if search_criteria.get('goingTo'):
-        crit_tokens = _tokens(search_criteria['goingTo'])
-        field_val = (ride.get('goingTo') or '').lower()
+    if search_criteria.get("goingTo"):
+        crit_tokens = _tokens(search_criteria["goingTo"])
+        field_val = (ride.get("goingTo") or "").lower()
         if all(t in field_val for t in crit_tokens):
-            destination_score = 1.0 if field_val.strip() == search_criteria['goingTo'].strip().lower() else 0.9
+            destination_score = (
+                1.0
+                if field_val.strip() == search_criteria["goingTo"].strip().lower()
+                else 0.9
+            )
 
     # Require both to be positive
     if starting_score > 0 and destination_score > 0:
         return (starting_score + destination_score) / 2
     return 0.0
 
+
 def calculate_ride_score(ride, search_criteria):
     """Calculate a comprehensive score for ride matching"""
     score = 0.0
-    
+
     # Location matching (50% weight) - intelligent city-level matching
     location_score = calculate_location_match_score(ride, search_criteria)
     score += location_score * 0.5
-    
+
     # Time overlap (30% weight) - only if time preferences are provided
-    if search_criteria.get('preferredStartTime') and search_criteria.get('preferredEndTime'):
+    if search_criteria.get("preferredStartTime") and search_criteria.get(
+        "preferredEndTime"
+    ):
         time_overlap = calculate_time_overlap(
-            ride['departureStartTime'],
-            ride['departureEndTime'],
-            search_criteria['preferredStartTime'],
-            search_criteria['preferredEndTime']
+            ride["departureStartTime"],
+            ride["departureEndTime"],
+            search_criteria["preferredStartTime"],
+            search_criteria["preferredEndTime"],
         )
         score += time_overlap * 0.3
     else:
         # If no time preference, give full points for time
         score += 0.3
-    
+
     # Seat availability (10% weight)
-    seat_score = min(ride['seatsRemaining'] / ride['availableSeats'], 1.0)
+    seat_score = min(ride["seatsRemaining"] / ride["availableSeats"], 1.0)
     score += seat_score * 0.1
-    
+
     # Popularity bonus (5% weight) – prefer precomputed count if present
-    interest_count = ride.get('interestCount')
+    interest_count = ride.get("interestCount")
     if interest_count is None:
-        ride_interests = get_collection('ride_interests')
+        ride_interests = get_collection("ride_interests")
         try:
-            interest_count = ride_interests.count_documents({'rideId': ride['_id']}, hint=[('rideId', 1)])
+            interest_count = ride_interests.count_documents(
+                {"rideId": ride["_id"]}, hint=[("rideId", 1)]
+            )
         except Exception:
-            interest_count = ride_interests.count_documents({'rideId': ride['_id']})
+            interest_count = ride_interests.count_documents({"rideId": ride["_id"]})
     popularity_score = min(interest_count / 5.0, 1.0)  # Cap at 5 interests
     score += popularity_score * 0.05
-    
+
     # Recency bonus (5% weight)
     try:
         # Handle both string and date formats
-        if isinstance(ride['travelDate'], str):
-            ride_date = datetime.strptime(ride['travelDate'], '%Y-%m-%d').date()
+        if isinstance(ride["travelDate"], str):
+            ride_date = datetime.strptime(ride["travelDate"], "%Y-%m-%d").date()
         else:
-            ride_date = ride['travelDate']
-        
+            ride_date = ride["travelDate"]
+
         days_until_travel = (ride_date - datetime.now().date()).days
-        recency_score = max(0, 1 - (days_until_travel / 30))  # Favor rides within 30 days
+        recency_score = max(
+            0, 1 - (days_until_travel / 30)
+        )  # Favor rides within 30 days
         score += recency_score * 0.05
     except (ValueError, TypeError):
         # If date parsing fails, give neutral score
         score += 0.025
-    
+
     return score
 
-def has_time_overlap(driver_start_time, driver_end_time, rider_start_time, rider_end_time):
+
+def has_time_overlap(
+    driver_start_time, driver_end_time, rider_start_time, rider_end_time
+):
     """Check if two time ranges have any overlap"""
+
     # Convert time strings to minutes for easier comparison
     def time_to_minutes(time_str):
-        hours, minutes = map(int, time_str.split(':'))
+        hours, minutes = map(int, time_str.split(":"))
         return hours * 60 + minutes
-    
+
     driver_start_min = time_to_minutes(driver_start_time)
     driver_end_min = time_to_minutes(driver_end_time)
     rider_start_min = time_to_minutes(rider_start_time)
     rider_end_min = time_to_minutes(rider_end_time)
-    
+
     # Two ranges overlap if: start1 <= end2 AND start2 <= end1
     return driver_start_min <= rider_end_min and rider_start_min <= driver_end_min
 
+
 def search_rides_with_scoring(search_criteria, user_id=None):
     """Search for rides and apply intelligent scoring with city-level matching"""
-    ride_posts = get_collection('ride_posts')
-    
+    ride_posts = get_collection("ride_posts")
+
     # Base query
-    base_query = {
-        'status': 'active',
-        'seatsRemaining': {'$gt': 0}
-    }
-    
+    base_query = {"status": "active", "seatsRemaining": {"$gt": 0}}
+
     # Add travel date filter only if provided
-    if search_criteria.get('travelDate'):
-        travel_date_str = search_criteria['travelDate'].strftime('%Y-%m-%d') if hasattr(search_criteria['travelDate'], 'strftime') else str(search_criteria['travelDate'])
-        base_query['travelDate'] = travel_date_str
-    
+    if search_criteria.get("travelDate"):
+        travel_date_str = (
+            search_criteria["travelDate"].strftime("%Y-%m-%d")
+            if hasattr(search_criteria["travelDate"], "strftime")
+            else str(search_criteria["travelDate"])
+        )
+        base_query["travelDate"] = travel_date_str
+
     # Exclude user's own rides if user is authenticated
     if user_id:
         from bson import ObjectId
-        base_query['userId'] = {'$ne': ObjectId(user_id)}
-    
+
+        base_query["userId"] = {"$ne": ObjectId(user_id)}
+
     # Build simplified fuzzy token location filters (all tokens must match)
-    if search_criteria.get('startingFrom'):
-        for t in _tokens(search_criteria['startingFrom']):
-            base_query.setdefault('$and', []).append({'startingFrom': {'$regex': t, '$options': 'i'}})
-    if search_criteria.get('goingTo'):
-        for t in _tokens(search_criteria['goingTo']):
-            base_query.setdefault('$and', []).append({'goingTo': {'$regex': t, '$options': 'i'}})
-    
+    if search_criteria.get("startingFrom"):
+        for t in _tokens(search_criteria["startingFrom"]):
+            base_query.setdefault("$and", []).append(
+                {"startingFrom": {"$regex": t, "$options": "i"}}
+            )
+    if search_criteria.get("goingTo"):
+        for t in _tokens(search_criteria["goingTo"]):
+            base_query.setdefault("$and", []).append(
+                {"goingTo": {"$regex": t, "$options": "i"}}
+            )
+
     potential_rides = list(ride_posts.find(base_query))
-    
+
     # If user is authenticated, exclude rides they've already expressed interest in AND their own rides
     if user_id and potential_rides:
         from bson import ObjectId
-        ride_interests = get_collection('ride_interests')
-        
+
+        ride_interests = get_collection("ride_interests")
+
         # Get ride IDs user has expressed interest in
-        user_interested_rides = ride_interests.find({
-            'interestedUserId': ObjectId(user_id),
-            'status': 'interested'
-        }, {'rideId': 1})
-        
-        interested_ride_ids = {str(interest['rideId']) for interest in user_interested_rides}
-        
+        user_interested_rides = ride_interests.find(
+            {"interestedUserId": ObjectId(user_id), "status": "interested"},
+            {"rideId": 1},
+        )
+
+        interested_ride_ids = {
+            str(interest["rideId"]) for interest in user_interested_rides
+        }
+
         # Filter out rides user has already expressed interest in AND user's own rides
         potential_rides = [
-            ride for ride in potential_rides 
-            if str(ride['_id']) not in interested_ride_ids and str(ride['userId']) != str(user_id)
+            ride
+            for ride in potential_rides
+            if str(ride["_id"]) not in interested_ride_ids
+            and str(ride["userId"]) != str(user_id)
         ]
-    
+
     # Precompute interest counts for popularity scoring in one aggregation
     if potential_rides:
-        ride_ids = [r['_id'] for r in potential_rides]
-        ride_interests = get_collection('ride_interests')
+        ride_ids = [r["_id"] for r in potential_rides]
+        ride_interests = get_collection("ride_interests")
         try:
             pipeline = [
-                {'$match': {'rideId': {'$in': ride_ids}, 'status': 'interested'}},
-                {'$group': {'_id': '$rideId', 'count': {'$sum': 1}}}
+                {"$match": {"rideId": {"$in": ride_ids}, "status": "interested"}},
+                {"$group": {"_id": "$rideId", "count": {"$sum": 1}}},
             ]
             counts = list(ride_interests.aggregate(pipeline))
-            counts_map = {c['_id']: c['count'] for c in counts}
+            counts_map = {c["_id"]: c["count"] for c in counts}
         except Exception:
             counts_map = {}
         for r in potential_rides:
-            r['interestCount'] = counts_map.get(r['_id'], 0)
+            r["interestCount"] = counts_map.get(r["_id"], 0)
 
     scored_rides = []
-    
+
     # Check if user provided time preferences
-    has_time_preferences = (search_criteria.get('preferredStartTime') and 
-                           search_criteria.get('preferredEndTime'))
-    
+    has_time_preferences = search_criteria.get(
+        "preferredStartTime"
+    ) and search_criteria.get("preferredEndTime")
+
     for ride in potential_rides:
         # If user specified time preferences, filter out rides with zero overlap
         if has_time_preferences:
             if not has_time_overlap(
-                ride['departureStartTime'],
-                ride['departureEndTime'],
-                search_criteria['preferredStartTime'],
-                search_criteria['preferredEndTime']
+                ride["departureStartTime"],
+                ride["departureEndTime"],
+                search_criteria["preferredStartTime"],
+                search_criteria["preferredEndTime"],
             ):
                 continue  # Skip rides with no time overlap
-        
+
         score = calculate_ride_score(ride, search_criteria)
         if score > 0.1:  # Only include rides with meaningful scores
-            ride['matchScore'] = score
+            ride["matchScore"] = score
             scored_rides.append(ride)
-    
+
     # Sort by match score (highest first)
-    scored_rides.sort(key=lambda x: x['matchScore'], reverse=True)
-    
+    scored_rides.sort(key=lambda x: x["matchScore"], reverse=True)
+
     return scored_rides
+
 
 def get_location_variations(location_string):
     """Get all possible variations of a location for intelligent matching"""
-    if not location_string:
-        return []
-    
-    # Parse the location string
-    parsed = location_service.parse_location_string(location_string)
-    if not parsed:
-        # If parsing fails, broaden by generating common display variants
-        s = location_string.strip()
-        variants = [s]
-        # Try adding/removing comma between city/state
-        if ',' in s:
-            no_comma = ' '.join([p.strip() for p in s.split(',')])
-            variants.append(no_comma)
-        else:
-            parts = s.split()
-            if len(parts) >= 2:
-                variants.append(parts[0] + ', ' + ' '.join(parts[1:]))
-        # Return unique
-        seen = set()
-        unique = []
-        for v in variants:
-            if v not in seen:
-                seen.add(v)
-                unique.append(v)
-        return unique
-    
-    variations = [location_string]  # Always include the original
-    
-    # Get all display name variations for this city
-    try:
-        if parsed['city'] and parsed['state']:
-            city_variations = location_service.get_all_city_display_names(
-                parsed['city'], 
-                parsed['state']
-            )
-            variations.extend(city_variations)
-    except Exception as e:
-        print(f"Error getting location variations: {e}")
-    
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_variations = []
-    for variation in variations:
-        if variation not in seen:
-            seen.add(variation)
-            unique_variations.append(variation)
-    
-    return unique_variations
+    return MatchingHelper.get_location_variations(location_string)
+
 
 def get_ride_with_details(ride_id):
     """Get a ride with driver information and interest count using aggregation"""
-    ride_posts = get_collection('ride_posts')
-    
+    ride_posts = get_collection("ride_posts")
+
     # Use aggregation to get ride, driver, and interest count
     pipeline = [
-        {'$match': {'_id': ride_id}},
-        {'$lookup': {
-            'from': 'users',
-            'localField': 'userId',
-            'foreignField': '_id',
-            'as': 'driver'
-        }},
-        {'$lookup': {
-            'from': 'ride_interests',
-            'localField': '_id',
-            'foreignField': 'rideId',
-            'as': 'interests'
-        }},
-        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
-        {'$addFields': {
-            'interestCount': {'$size': '$interests'},
-            'isHotRide': {'$gte': [{'$size': '$interests'}, 3]}
-        }}
+        {"$match": {"_id": ride_id}},
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "userId",
+                "foreignField": "_id",
+                "as": "driver",
+            }
+        },
+        {
+            "$lookup": {
+                "from": "ride_interests",
+                "localField": "_id",
+                "foreignField": "rideId",
+                "as": "interests",
+            }
+        },
+        {"$unwind": {"path": "$driver", "preserveNullAndEmptyArrays": True}},
+        {
+            "$addFields": {
+                "interestCount": {"$size": "$interests"},
+                "isHotRide": {"$gte": [{"$size": "$interests"}, 3]},
+            }
+        },
     ]
-    
+
     ride_details = list(ride_posts.aggregate(pipeline))
-    
+
     if not ride_details:
         return None
-    
+
     ride_data = ride_details[0]
-    
+
     # Helper function to format location data
     def format_location_field(location_value):
         if not location_value:
             return None
-        
+
         # If it's already an object (from locations collection), use it
-        if isinstance(location_value, dict) and 'displayName' in location_value:
+        if isinstance(location_value, dict) and "displayName" in location_value:
             return location_value
-        
+
         # If it's a string, create a location object
         if isinstance(location_value, str):
-            return {
-                'displayName': location_value
-            }
-        
+            return {"displayName": location_value}
+
         return None
-    
+
     # Format the response
     formatted_ride = {
-        '_id': str(ride_data['_id']),
-        'userId': str(ride_data['userId']),  # Include userId for filtering
-        'startingFrom': format_location_field(ride_data.get('startingFrom')),
-        'goingTo': format_location_field(ride_data.get('goingTo')),
-        'travelDate': ride_data['travelDate'],
-        'departureStartTime': ride_data['departureStartTime'],
-        'departureEndTime': ride_data['departureEndTime'],
-        'availableSeats': ride_data['availableSeats'],
-        'seatsRemaining': ride_data['seatsRemaining'],
-        'suggestedContribution': {
-            'amount': ride_data.get('suggestedContribution', 0),
-            'currency': 'USD'
+        "_id": str(ride_data["_id"]),
+        "userId": str(ride_data["userId"]),  # Include userId for filtering
+        "startingFrom": format_location_field(ride_data.get("startingFrom")),
+        "goingTo": format_location_field(ride_data.get("goingTo")),
+        "travelDate": ride_data["travelDate"],
+        "departureStartTime": ride_data["departureStartTime"],
+        "departureEndTime": ride_data["departureEndTime"],
+        "availableSeats": ride_data["availableSeats"],
+        "seatsRemaining": ride_data["seatsRemaining"],
+        "suggestedContribution": {
+            "amount": ride_data.get("suggestedContribution", 0),
+            "currency": "USD",
         },
-        'status': ride_data['status'],
-        'createdAt': ride_data['createdAt'],
-        'updatedAt': ride_data['updatedAt'],
-        'additionalDetails': ride_data.get('additionalDetails', ''),
-        'driver': {
-            'name': ride_data['driver']['name'],
-            'phoneNumber': ride_data['driver'].get('phone', ''),
-            'whatsappNumber': ride_data['driver'].get('whatsapp', '')
-        } if ride_data.get('driver') else None,
-        'interestCount': ride_data['interestCount'],
-        'isHotRide': ride_data['isHotRide']
+        "status": ride_data["status"],
+        "createdAt": ride_data["createdAt"],
+        "updatedAt": ride_data["updatedAt"],
+        "additionalDetails": ride_data.get("additionalDetails", ""),
+        "driver": {
+            "name": ride_data["driver"]["name"],
+            "phoneNumber": ride_data["driver"].get("phone", ""),
+            "whatsappNumber": ride_data["driver"].get("whatsapp", ""),
+        }
+        if ride_data.get("driver")
+        else None,
+        "interestCount": ride_data["interestCount"],
+        "isHotRide": ride_data["isHotRide"],
     }
-    
-    return formatted_ride 
+
+    return formatted_ride

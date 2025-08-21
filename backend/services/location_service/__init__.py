@@ -1,1 +1,3 @@
-from .location_service import * 
+from .location_service import location_service
+
+__all__ = ["location_service"]
