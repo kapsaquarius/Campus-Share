@@ -1,30 +1,7 @@
 from datetime import datetime
+from bson import ObjectId
 from scripts.database import get_collection
 from utils.matching_utils import MatchingHelper
-
-
-# Backward compatibility - use common matching utilities
-def _tokens(s: str):
-    return MatchingHelper.tokenize_text(s)
-
-
-def calculate_time_overlap(
-    driver_start_time, driver_end_time, rider_start_time, rider_end_time
-):
-    """Calculate overlap between driver's time range and rider's preferred time"""
-    return MatchingHelper.calculate_time_overlap(
-        driver_start_time, driver_end_time, rider_start_time, rider_end_time
-    )
-
-
-def validate_time_format(time_str):
-    """Validate time format (HH:MM in 24-hour format)"""
-    return MatchingHelper.validate_time_format(time_str)
-
-
-def is_valid_time_range(start_time, end_time):
-    """Check if start time is before end time"""
-    return MatchingHelper.is_valid_time_range(start_time, end_time)
 
 
 def calculate_location_match_score(ride, search_criteria):
@@ -34,7 +11,7 @@ def calculate_location_match_score(ride, search_criteria):
 
     # Starting location
     if search_criteria.get("startingFrom"):
-        crit_tokens = _tokens(search_criteria["startingFrom"])
+        crit_tokens = MatchingHelper.tokenize_text(search_criteria["startingFrom"])
         field_val = (ride.get("startingFrom") or "").lower()
         if all(t in field_val for t in crit_tokens):
             starting_score = (
@@ -45,7 +22,7 @@ def calculate_location_match_score(ride, search_criteria):
 
     # Destination
     if search_criteria.get("goingTo"):
-        crit_tokens = _tokens(search_criteria["goingTo"])
+        crit_tokens = MatchingHelper.tokenize_text(search_criteria["goingTo"])
         field_val = (ride.get("goingTo") or "").lower()
         if all(t in field_val for t in crit_tokens):
             destination_score = (
@@ -72,7 +49,7 @@ def calculate_ride_score(ride, search_criteria):
     if search_criteria.get("preferredStartTime") and search_criteria.get(
         "preferredEndTime"
     ):
-        time_overlap = calculate_time_overlap(
+        time_overlap = MatchingHelper.calculate_time_overlap(
             ride["departureStartTime"],
             ride["departureEndTime"],
             search_criteria["preferredStartTime"],
@@ -157,18 +134,16 @@ def search_rides_with_scoring(search_criteria, user_id=None):
 
     # Exclude user's own rides if user is authenticated
     if user_id:
-        from bson import ObjectId
-
         base_query["userId"] = {"$ne": ObjectId(user_id)}
 
     # Build simplified fuzzy token location filters (all tokens must match)
     if search_criteria.get("startingFrom"):
-        for t in _tokens(search_criteria["startingFrom"]):
+        for t in MatchingHelper.tokenize_text(search_criteria["startingFrom"]):
             base_query.setdefault("$and", []).append(
                 {"startingFrom": {"$regex": t, "$options": "i"}}
             )
     if search_criteria.get("goingTo"):
-        for t in _tokens(search_criteria["goingTo"]):
+        for t in MatchingHelper.tokenize_text(search_criteria["goingTo"]):
             base_query.setdefault("$and", []).append(
                 {"goingTo": {"$regex": t, "$options": "i"}}
             )
@@ -177,8 +152,6 @@ def search_rides_with_scoring(search_criteria, user_id=None):
 
     # If user is authenticated, exclude rides they've already expressed interest in AND their own rides
     if user_id and potential_rides:
-        from bson import ObjectId
-
         ride_interests = get_collection("ride_interests")
 
         # Get ride IDs user has expressed interest in
@@ -242,11 +215,6 @@ def search_rides_with_scoring(search_criteria, user_id=None):
     scored_rides.sort(key=lambda x: x["matchScore"], reverse=True)
 
     return scored_rides
-
-
-def get_location_variations(location_string):
-    """Get all possible variations of a location for intelligent matching"""
-    return MatchingHelper.get_location_variations(location_string)
 
 
 def get_ride_with_details(ride_id):

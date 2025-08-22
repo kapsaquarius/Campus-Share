@@ -3,6 +3,8 @@ Base classes and utilities for service layer consistency
 """
 
 import logging
+import re
+import time
 from typing import Dict, List, Any, Tuple
 from abc import ABC
 from functools import wraps
@@ -170,16 +172,12 @@ class ValidationHelper:
     @staticmethod
     def validate_email(email: str) -> bool:
         """Validate email format"""
-        import re
-
         pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return bool(re.match(pattern, email))
 
     @staticmethod
     def validate_phone(phone: str) -> bool:
         """Validate phone number format"""
-        import re
-
         # Basic international phone validation
         pattern = r"^\+[\d\s\-\(\)]{7,}$"
         return bool(re.match(pattern, phone.strip()))
@@ -272,16 +270,12 @@ class CacheHelper:
     @classmethod
     def set(cls, key: str, value: Any, ttl: int = 300):
         """Set cached value with TTL (in seconds)"""
-        import time
-
         expiry = time.time() + ttl
         cls._cache[key] = {"value": value, "expiry": expiry}
 
     @classmethod
     def clear_expired(cls):
         """Clear expired cache entries"""
-        import time
-
         current_time = time.time()
         expired_keys = [
             key

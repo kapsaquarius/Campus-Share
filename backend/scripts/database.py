@@ -1,6 +1,8 @@
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from bson import ObjectId
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -22,9 +24,6 @@ def format_object_id(obj):
     """Convert ObjectId to string for JSON serialization"""
     if not obj:
         return obj
-
-    from bson import ObjectId
-    from datetime import datetime
 
     # Create a copy to avoid modifying the original
     formatted = obj.copy()

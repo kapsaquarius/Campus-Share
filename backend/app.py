@@ -19,8 +19,13 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["MONGODB_URI"] = os.getenv("MONGODB_URI")
 
-# Parse CORS origins
-cors_origins = os.getenv("CORS_ORIGINS").split(",")
+# Parse CORS origins - with fallback for development
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    cors_origins = cors_origins_env.split(",")
+else:
+    # Fallback for development
+    cors_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 CORS(
     app,
@@ -65,6 +70,7 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
     )
+
 
 
 @app.errorhandler(404)

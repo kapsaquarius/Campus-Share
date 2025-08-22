@@ -3,11 +3,12 @@ Common utilities for reusable functionality across the application
 """
 
 from functools import wraps
-from flask import jsonify
+from flask import jsonify, request
 from bson import ObjectId
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from scripts.database import get_collection, format_object_id
+from utils.auth_helpers import get_current_user_from_request
 
 
 class ResponseFormatter:
@@ -300,10 +301,7 @@ def require_auth(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Import here to avoid circular dependency
-        from routes.auth import get_current_user
-
-        user = get_current_user()
+        user = get_current_user_from_request(request)
         if not user:
             return ResponseFormatter.error("Unauthorized", 401)
         return f(user, *args, **kwargs)

@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from datetime import datetime, date, timedelta
 from bson import ObjectId
 from scripts.database import get_collection, format_object_id
-from routes.auth import get_current_user
+
 from services.roommate_service import (
     search_roommates_with_scoring,
     get_roommate_with_details,
@@ -42,71 +42,74 @@ def _serialize_mongo(obj):
 
 
 @roommates_bp.route("/search", methods=["GET"])
-def search_roommates():
-    try:
-        current_user = get_current_user()
-        user_id = current_user["_id"] if current_user else None
+@require_auth
+@handle_exceptions
+def search_roommates(user):
+    current_user = user
+    user_id = current_user["_id"]
 
-        params = request.args
-        req_type = params.get("type")
-        invert_type = None
-        if req_type in ("offer", "seek"):
-            invert_type = "seek" if req_type == "offer" else "offer"
-        move_in = params.get("moveIn")
-        move_in_start = None
-        move_in_end = None
-        if move_in:
-            try:
-                base = datetime.strptime(move_in, "%Y-%m-%d").date()
-                start = base - timedelta(days=21)
-                end = base + timedelta(days=21)
-                move_in_start = start.strftime("%Y-%m-%d")
-                move_in_end = end.strftime("%Y-%m-%d")
-            except Exception:
-                move_in_start = None
-                move_in_end = None
+    params = request.args
+    req_type = params.get("type")
+    invert_type = None
+    if req_type in ("offer", "seek"):
+        invert_type = "seek" if req_type == "offer" else "offer"
+    
+    # Process move_in date range if provided
+    move_in = params.get("moveIn")
+    move_in_start = None
+    move_in_end = None
+    if move_in:
+        try:
+            base = datetime.strptime(move_in, "%Y-%m-%d").date()
+            start = base - timedelta(days=21)
+            end = base + timedelta(days=21)
+            move_in_start = start.strftime("%Y-%m-%d")
+            move_in_end = end.strftime("%Y-%m-%d")
+        except Exception:
+            move_in_start = None
+            move_in_end = None
 
-        criteria = {
-            "type": invert_type if invert_type else None,
-            "location": params.get("location"),
-            "moveIn": params.get("moveIn"),
-            "moveInStart": move_in_start,
-            "moveInEnd": move_in_end,
-            "budgetMin": int(params.get("budgetMin"))
-            if params.get("budgetMin")
-            else None,
-            "budgetMax": int(params.get("budgetMax"))
-            if params.get("budgetMax")
-            else None,
-            "roomType": params.get("roomType"),
-            "furnished": params.get("furnished"),
-            "pets": params.get("pets"),
-            "smoking": params.get("smoking"),
-            "dietary": params.get("dietary"),
-            "sleep": params.get("sleep"),
-            "guestsPerWeek": params.get("guestsPerWeek"),
-        }
+    # Build search criteria (executes for all searches)
+    criteria = {
+        "type": invert_type if invert_type else None,
+        "location": params.get("location"),
+        "moveIn": params.get("moveIn"),
+        "moveInStart": move_in_start,
+        "moveInEnd": move_in_end,
+        "budgetMin": int(params.get("budgetMin"))
+        if params.get("budgetMin")
+        else None,
+        "budgetMax": int(params.get("budgetMax"))
+        if params.get("budgetMax")
+        else None,
+        "roomType": params.get("roomType"),
+        "furnished": params.get("furnished"),
+        "pets": params.get("pets"),
+        "smoking": params.get("smoking"),
+        "dietary": params.get("dietary"),
+        "sleep": params.get("sleep"),
+        "guestsPerWeek": params.get("guestsPerWeek"),
+    }
 
-        results = search_roommates_with_scoring(criteria, user_id)
+    # Execute search (always runs)
+    results = search_roommates_with_scoring(criteria, user_id)
 
-        page, per_page = PaginationHelper.get_pagination_params(params)
-        paged = PaginationHelper.apply_pagination(results, page, per_page)
+    page, per_page = PaginationHelper.get_pagination_params(params)
+    paged = PaginationHelper.apply_pagination(results, page, per_page)
 
-        formatted = []
-        for doc in paged:
-            try:
-                detailed = get_roommate_with_details(doc["_id"])
-                formatted.append(_serialize_mongo(detailed))
-            except Exception:
-                formatted.append(format_object_id(doc))
+    formatted = []
+    for doc in paged:
+        try:
+            detailed = get_roommate_with_details(doc["_id"])
+            formatted.append(_serialize_mongo(detailed))
+        except Exception:
+            formatted.append(format_object_id(doc))
 
-        return ResponseFormatter.success(
-            ResponseFormatter.paginated_response(
-                formatted, len(results), page, per_page, "listings"
-            )
+    return ResponseFormatter.success(
+        ResponseFormatter.paginated_response(
+            formatted, len(results), page, per_page, "listings"
         )
-    except Exception as e:
-        return ResponseFormatter.error(f"Search failed: {str(e)}", 400)
+    )
 
 
 @roommates_bp.route("/", methods=["POST"])

@@ -223,8 +223,6 @@ class LocationService(DatabaseService):
 
     def parse_location_string(self, location_string: str) -> Dict:
         """Parse a location string to extract city, state, and zip code"""
-        import re
-
         pattern = r"^(.+?),\s*(.+?)(?:\s+(\d{5}))?$"
         match = re.match(pattern, location_string.strip())
 

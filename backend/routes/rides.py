@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 from datetime import datetime
 from bson import ObjectId
 from scripts.database import get_collection, format_object_id
-from routes.auth import get_current_user
+
 from services.ride_service import search_rides_with_scoring, get_ride_with_details
 from services.notification_service import (
     create_ride_interest_notification,
@@ -24,72 +24,72 @@ rides_bp = Blueprint("rides", __name__)
 
 
 @rides_bp.route("/search", methods=["GET", "POST"])
-def search_rides():
+@require_auth
+@handle_exceptions
+def search_rides(user):
     """Smart ride search with intelligent filtering and ranking"""
-    try:
-        current_user = get_current_user()
+    current_user = user
 
-        if request.method == "GET":
-            travel_date_str = request.args.get("travelDate")
-            travel_date = (
-                datetime.strptime(travel_date_str, "%Y-%m-%d").date()
-                if travel_date_str
-                else None
-            )
-            starting_from = request.args.get("startingFrom", "")
-            going_to = request.args.get("goingTo", "")
-            preferred_time_start = request.args.get("preferredTimeStart", "")
-            preferred_time_end = request.args.get("preferredTimeEnd", "")
-        else:
-            data = request.get_json()
-            travel_date_str = data.get("travelDate")
-            travel_date = (
-                datetime.strptime(travel_date_str, "%Y-%m-%d").date()
-                if travel_date_str
-                else None
-            )
-            starting_from = data["startingFrom"]
-            going_to = data["goingTo"]
-            preferred_time_start = data.get("preferredTimeStart", "")
-            preferred_time_end = data.get("preferredTimeEnd", "")
-
-        search_criteria = {
-            "travelDate": travel_date,
-            "startingFrom": starting_from,
-            "goingTo": going_to,
-            "preferredStartTime": preferred_time_start,
-            "preferredEndTime": preferred_time_end,
-        }
-
-        user_id = current_user["_id"] if current_user else None
-        scored_rides = search_rides_with_scoring(search_criteria, user_id)
-
-        if not scored_rides:
-            return ResponseFormatter.success(
-                ResponseFormatter.paginated_response([], 0, 1, 10, "rides"),
-                "No rides found for your criteria",
-            )
-
-        page, per_page = PaginationHelper.get_pagination_params(request.args)
-        paginated_rides = PaginationHelper.apply_pagination(
-            scored_rides, page, per_page
+    # Extract parameters based on request method
+    if request.method == "GET":
+        travel_date_str = request.args.get("travelDate")
+        travel_date = (
+            datetime.strptime(travel_date_str, "%Y-%m-%d").date()
+            if travel_date_str
+            else None
         )
+        starting_from = request.args.get("startingFrom", "")
+        going_to = request.args.get("goingTo", "")
+        preferred_time_start = request.args.get("preferredTimeStart", "")
+        preferred_time_end = request.args.get("preferredTimeEnd", "")
+    else:
+        data = request.get_json()
+        travel_date_str = data.get("travelDate")
+        travel_date = (
+            datetime.strptime(travel_date_str, "%Y-%m-%d").date()
+            if travel_date_str
+            else None
+        )
+        starting_from = data["startingFrom"]
+        going_to = data["goingTo"]
+        preferred_time_start = data.get("preferredTimeStart", "")
+        preferred_time_end = data.get("preferredTimeEnd", "")
 
-        formatted_rides = []
-        for ride in paginated_rides:
-            ride_with_details = get_ride_with_details(ride["_id"])
-            if ride_with_details:
-                formatted_ride = format_object_id(ride_with_details)
-                formatted_rides.append(formatted_ride)
+    # Process search for both GET and POST methods
+    search_criteria = {
+        "travelDate": travel_date,
+        "startingFrom": starting_from,
+        "goingTo": going_to,
+        "preferredStartTime": preferred_time_start,
+        "preferredEndTime": preferred_time_end,
+    }
 
+    user_id = current_user["_id"] if current_user else None
+    scored_rides = search_rides_with_scoring(search_criteria, user_id)
+
+    if not scored_rides:
         return ResponseFormatter.success(
-            ResponseFormatter.paginated_response(
-                formatted_rides, len(scored_rides), page, per_page, "rides"
-            )
+            ResponseFormatter.paginated_response([], 0, 1, 10, "rides"),
+            "No rides found for your criteria",
         )
 
-    except Exception as e:
-        return ResponseFormatter.error(f"Search failed: {str(e)}", 400)
+    page, per_page = PaginationHelper.get_pagination_params(request.args)
+    paginated_rides = PaginationHelper.apply_pagination(
+        scored_rides, page, per_page
+    )
+
+    formatted_rides = []
+    for ride in paginated_rides:
+        ride_with_details = get_ride_with_details(ride["_id"])
+        if ride_with_details:
+            formatted_ride = format_object_id(ride_with_details)
+            formatted_rides.append(formatted_ride)
+
+    return ResponseFormatter.success(
+        ResponseFormatter.paginated_response(
+            formatted_rides, len(scored_rides), page, per_page, "rides"
+        )
+    )
 
 
 @rides_bp.route("/", methods=["GET", "POST"])
@@ -209,77 +209,71 @@ def get_interested_users(user, ride_id):
 
 
 @rides_bp.route("/my-interested", methods=["GET"])
-def get_my_interested_rides():
+@require_auth
+@handle_exceptions
+def get_my_interested_rides(user):
     """Get rides that the current user has expressed interest in"""
-    user = get_current_user()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
+    ride_interests = get_collection("ride_interests")
 
-    try:
-        ride_interests = get_collection("ride_interests")
+    pipeline = [
+        {
+            "$match": {
+                "interestedUserId": ObjectId(user["_id"]),
+                "status": "interested",
+            }
+        },
+        {
+            "$lookup": {
+                "from": "ride_posts",
+                "localField": "rideId",
+                "foreignField": "_id",
+                "as": "ride",
+            }
+        },
+        {"$unwind": "$ride"},
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "ride.userId",
+                "foreignField": "_id",
+                "as": "driver",
+            }
+        },
+        {"$unwind": "$driver"},
+        {
+            "$project": {
+                "_id": {"$toString": "$_id"},
+                "interestedAt": "$createdAt",
+                "ride": {
+                    "_id": {"$toString": "$ride._id"},
+                    "startingFrom": "$ride.startingFrom",
+                    "goingTo": "$ride.goingTo",
+                    "travelDate": "$ride.travelDate",
+                    "departureStartTime": "$ride.departureStartTime",
+                    "departureEndTime": "$ride.departureEndTime",
+                    "availableSeats": "$ride.availableSeats",
+                    "seatsRemaining": "$ride.seatsRemaining",
+                    "suggestedContribution": "$ride.suggestedContribution",
+                    "status": "$ride.status",
+                    "createdAt": "$ride.createdAt",
+                    "additionalDetails": "$ride.additionalDetails",
+                },
+                "driver": {
+                    "name": "$driver.name",
+                    "username": "$driver.username",
+                    "phoneNumber": "$driver.phone",
+                    "whatsappNumber": "$driver.whatsapp",
+                },
+            }
+        },
+        {"$sort": {"interestedAt": -1}},
+    ]
 
-        pipeline = [
-            {
-                "$match": {
-                    "interestedUserId": ObjectId(user["_id"]),
-                    "status": "interested",
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "ride_posts",
-                    "localField": "rideId",
-                    "foreignField": "_id",
-                    "as": "ride",
-                }
-            },
-            {"$unwind": "$ride"},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "ride.userId",
-                    "foreignField": "_id",
-                    "as": "driver",
-                }
-            },
-            {"$unwind": "$driver"},
-            {
-                "$project": {
-                    "_id": {"$toString": "$_id"},
-                    "interestedAt": "$createdAt",
-                    "ride": {
-                        "_id": {"$toString": "$ride._id"},
-                        "startingFrom": "$ride.startingFrom",
-                        "goingTo": "$ride.goingTo",
-                        "travelDate": "$ride.travelDate",
-                        "departureStartTime": "$ride.departureStartTime",
-                        "departureEndTime": "$ride.departureEndTime",
-                        "availableSeats": "$ride.availableSeats",
-                        "seatsRemaining": "$ride.seatsRemaining",
-                        "suggestedContribution": "$ride.suggestedContribution",
-                        "status": "$ride.status",
-                        "createdAt": "$ride.createdAt",
-                        "additionalDetails": "$ride.additionalDetails",
-                    },
-                    "driver": {
-                        "name": "$driver.name",
-                        "username": "$driver.username",
-                        "phoneNumber": "$driver.phone",
-                        "whatsappNumber": "$driver.whatsapp",
-                    },
-                }
-            },
-            {"$sort": {"interestedAt": -1}},
-        ]
+    interested_rides = list(ride_interests.aggregate(pipeline))
 
-        interested_rides = list(ride_interests.aggregate(pipeline))
-
-        return jsonify(
-            {"interestedRides": interested_rides, "totalCount": len(interested_rides)}
-        ), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to get interested rides: {str(e)}"}), 400
+    return ResponseFormatter.success(
+        {"interestedRides": interested_rides, "totalCount": len(interested_rides)}
+    )
 
 
 @rides_bp.route("/my-rides", methods=["GET"])

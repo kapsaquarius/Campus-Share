@@ -10,7 +10,7 @@ Complete CampusShare Cloud Database Setup
 import os
 import sys
 import pandas as pd
-from pymongo import MongoClient, ASCENDING, DESCENDING, TEXT
+from pymongo import MongoClient, ASCENDING, DESCENDING, TEXT, UpdateOne
 from pymongo.errors import OperationFailure
 from datetime import datetime
 import traceback
@@ -526,8 +526,6 @@ def load_locations_from_csv(db, csv_file_path="data/locations.csv"):
                 if len(batch_data) >= batch_size:
                     try:
                         # Use bulk operations for better performance
-                        from pymongo import UpdateOne
-
                         operations = [
                             UpdateOne(
                                 {"zipCode": loc["zipCode"]}, {"$set": loc}, upsert=True
@@ -564,8 +562,6 @@ def load_locations_from_csv(db, csv_file_path="data/locations.csv"):
         # Process remaining batch
         if batch_data:
             try:
-                from pymongo import UpdateOne
-
                 operations = [
                     UpdateOne({"zipCode": loc["zipCode"]}, {"$set": loc}, upsert=True)
                     for loc in batch_data

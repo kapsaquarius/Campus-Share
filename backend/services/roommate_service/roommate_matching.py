@@ -1,21 +1,8 @@
 from datetime import datetime
 from typing import Dict, List, Any
-import re
-
+from bson import ObjectId
 from scripts.database import get_collection
 from utils.matching_utils import MatchingHelper
-
-
-def get_location_variations(location_string: str) -> List[str]:
-    """Get all possible variations of a location for intelligent matching"""
-    return MatchingHelper.get_location_variations(location_string)
-
-
-def _interval_overlap_ratio(
-    a_min: float, a_max: float, b_min: float, b_max: float
-) -> float:
-    """Calculate overlap ratio between two intervals"""
-    return MatchingHelper.calculate_interval_overlap(a_min, a_max, b_min, b_max)
 
 
 def _date_distance_days(date_str: str, target_str: str) -> int:
@@ -32,11 +19,7 @@ def calculate_listing_score(listing: Dict[str, Any], criteria: Dict[str, Any]) -
 
     location_score = 0.0
     if criteria.get("location"):
-
-        def tokens(s: str) -> List[str]:
-            return [t for t in re.findall(r"[A-Za-z0-9]+", s.lower()) if len(t) >= 2]
-
-        crit_tokens = tokens(criteria["location"])
+        crit_tokens = MatchingHelper.tokenize_text(criteria["location"])
         loc_val = listing.get("location") or ""
         loc_norm = loc_val.lower()
         if all(t in loc_norm for t in crit_tokens if t):
@@ -53,7 +36,7 @@ def calculate_listing_score(listing: Dict[str, Any], criteria: Dict[str, Any]) -
     lmin = listing.get("budgetMin")
     lmax = listing.get("budgetMax")
     if cmin is not None and cmax is not None and lmin is not None and lmax is not None:
-        budget_score = _interval_overlap_ratio(lmin, lmax, cmin, cmax)
+        budget_score = MatchingHelper.calculate_interval_overlap(lmin, lmax, cmin, cmax)
     elif lmin is not None and cmax is not None:
         budget_score = 1.0 if lmin <= cmax else 0.0
     elif lmax is not None and cmin is not None:
@@ -138,7 +121,7 @@ def search_roommates_with_scoring(
 
     if criteria.get("location"):
         crit = criteria["location"]
-        toks = [t for t in re.findall(r"[A-Za-z0-9]+", crit) if len(t) >= 2]
+        toks = MatchingHelper.tokenize_text(crit)
         if toks:
             and_clauses = query.get("$and", [])
             for t in toks:
@@ -174,8 +157,6 @@ def search_roommates_with_scoring(
             "$gte": criteria["moveInStart"],
             "$lte": criteria["moveInEnd"],
         }
-
-    from bson import ObjectId
 
     if user_id:
         query["userId"] = {"$ne": ObjectId(user_id)}

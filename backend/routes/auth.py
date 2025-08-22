@@ -5,7 +5,12 @@ import string
 from services.user_service.user_service import user_service
 from services.email_service.email_service import EmailService
 from utils.auth_helpers import create_jwt_token
-from utils.common import ResponseFormatter, ValidationHelper, handle_exceptions
+from utils.common import (
+    ResponseFormatter,
+    ValidationHelper,
+    handle_exceptions,
+    require_auth,
+)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -62,23 +67,18 @@ def login():
 
 
 @auth_bp.route("/profile", methods=["GET"])
+@require_auth
 @handle_exceptions
-def get_profile():
+def get_profile(user):
     """Get current user profile"""
-    user = get_current_user()
-    if not user:
-        return ResponseFormatter.error("Unauthorized", 401)
-
     return ResponseFormatter.success({"user": user})
 
 
 @auth_bp.route("/profile", methods=["PUT"])
+@require_auth
 @handle_exceptions
-def update_profile():
+def update_profile(user):
     """Update current user profile"""
-    user = get_current_user()
-    if not user:
-        return ResponseFormatter.error("Unauthorized", 401)
 
     data = request.get_json()
     if not data:
@@ -111,12 +111,10 @@ def update_profile():
 
 
 @auth_bp.route("/delete-account", methods=["DELETE"])
+@require_auth
 @handle_exceptions
-def delete_account():
+def delete_account(user):
     """Delete current user account and all associated data"""
-    user = get_current_user()
-    if not user:
-        return ResponseFormatter.error("Unauthorized", 401)
 
     user_id = user["_id"]
 
@@ -278,10 +276,3 @@ def check_email():
     user = user_service.get_user_by_email(email)
 
     return ResponseFormatter.success({"exists": user is not None, "email": email})
-
-
-def get_current_user():
-    """Get current user from request headers"""
-    from utils.auth_helpers import get_current_user_from_request
-
-    return get_current_user_from_request(request)
