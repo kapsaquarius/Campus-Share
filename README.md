@@ -1,244 +1,67 @@
 # 🚗🏠 CampusShare
 
-> **Connecting students for seamless ride-sharing and roommate matching across campus communities**
-
-![CampusShare](https://img.shields.io/badge/Platform-Student%20Ride%20Sharing-blue?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Active-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
-
 ---
 
 ## 🌟 **What is CampusShare?**
 
-CampusShare is a modern, student-focused ride-sharing and roommate-matching platform designed to make campus life easier, more affordable, and community-driven. Built specifically for college communities, it connects:
+CampusShare is a student-focused platform that makes campus life easier by connecting students for:
 
-- Students who need rides with students who can offer them
-- Students seeking rooms with students offering rooms
+- **🚗 Ride Sharing** - Find students traveling the same route for trips home, airport runs, events, and daily commutes
+- **🏠 Roommate Matching** - Connect with compatible roommates based on lifestyle preferences, budget, and location
 
-Whether you're heading home for the weekend, going to the airport, or need a ride to that off-campus event, CampusShare helps you find fellow students traveling the same route.
-
----
-
-## ✨ **Key Features**
-
-### 🎯 **Smart Ride Matching**
-- **Intelligent Route Detection** - Automatically matches rides based on your starting point and destination
-- **Flexible Time Ranges** - Set departure windows that work for your schedule
-- **Real-time Availability** - See available rides instantly with up-to-date seat counts
-
-### 🛡️ **Safe & Secure**
-- **Student Verification** - Connect only with verified student accounts
-- **Secure Communication** - Safe contact sharing when you join a ride
-- **Campus-Focused** - Built specifically for trusted college communities
-
-### 🌍 **Comprehensive Coverage**
-- **39,000+ Locations** - Support for cities and ZIP codes across the United States
-- **Campus Routes** - Optimized for common student travel patterns
-- **Long & Short Distance** - From campus shuttles to cross-country trips
-
-### 📱 **User-Friendly Experience**
-### 🏠 **Roommate Matching (New)**
-- Room/Roommate listings (offer/seek) with detailed preferences
-- Budget range slider, room type, furnished, pets, smoking, dietary, sleep schedule, guests/week
-- Exact address support for offers
-- Smart search with token-based fuzzy matching and move-in window
-- Express/remove interest with in-app and email notifications
-- **Intuitive Interface** - Clean, modern design that's easy to navigate
-- **Mobile Responsive** - Works seamlessly on phones, tablets, and desktops
-- **Real-time Notifications** - Stay updated on ride requests and changes
+Whether you're heading home for the weekend, going to the airport, need a roommate, or looking for a place to live, CampusShare helps you connect with fellow students in your campus community.
 
 ---
+
+## ✨ **What CampusShare Does**
+
+### 🚗 **Ride Sharing**
+- **Smart Matching** - Find students traveling your route with flexible time ranges
+- **Safe Connections** - Connect only with verified student accounts in your campus community
+- **All Distances** - From campus shuttles to cross-country trips, with 39,000+ supported locations
+- **Cost Sharing** - Split gas costs to make travel more affordable
+
+### 🏠 **Roommate Matching** 
+- **Find Compatible Roommates** - Match based on lifestyle preferences, budget, sleep schedule, and more
+- **Flexible Options** - Seek roommates or offer rooms with detailed preference settings
+- **Location Support** - Search by campus area with exact address support for room offers
+- **Safe Communication** - Express interest and connect through the platform
 
 ## 🚀 **How It Works**
 
-### **For Passengers (Ride Seekers)**
-1. **🔍 Search Rides** - Enter your route and preferred travel times
-2. **📋 Browse Options** - View available rides with driver details and pricing
-3. **✋ Express Interest** - Request to join rides that match your needs
-4. **💬 Connect** - Get driver contact info once your request is accepted
-5. **🚗 Travel Together** - Meet up and enjoy your shared journey
+### **🚗 For Ride Sharing**
+1. **Search or Post** - Find rides going your way, or post your own ride
+2. **Express Interest** - Connect with compatible travel partners
+3. **Share Costs** - Split gas and expenses to save money
+4. **Travel Together** - Meet fellow students and enjoy the journey
 
-### **For Drivers (Ride Providers)**
-1. **📝 Post Your Ride** - Share your route, timing, and available seats
-2. **💰 Set Contribution** - Optional cost-sharing for gas and expenses
-3. **👥 Review Requests** - See who wants to join your ride
-4. **✅ Accept Passengers** - Choose compatible travel companions
-5. **🤝 Connect & Drive** - Meet your passengers and hit the road
+### **🏠 For Roommate Matching**
+1. **Create Listing** - Post room offers or roommate searches with your preferences
+2. **Smart Search** - Find compatible matches based on lifestyle, budget, and location
+3. **Connect Safely** - Express interest and communicate through the platform
+4. **Find Your Match** - Connect with the perfect roommate or room
 
 ---
 
-## 🎨 **Screenshots & Interface**
+## 📚 **Documentation & Setup**
 
-### **Homepage**
-Clean, welcoming landing page that immediately showcases the three core features:
-- **Smart Matching** for intelligent route detection
-- **Flexible Times** for schedule compatibility  
-- **Verified Users** for safe student connections
+### **🚀 Setup Instructions**
+- **Backend Setup**: See [`backend/README.md`](./backend/README.md) - Complete backend API setup guide
+- **Frontend Setup**: See [`frontend/README.md`](./frontend/README.md) - Frontend web application setup guide
 
-### **Ride Search**
-Powerful search interface with:
-- Location autocomplete with 39k+ US locations
-- Date and time range selection
-- Real-time results with driver details
-- One-click interest expression
-
-### **Dashboard**
-Comprehensive ride management:
-- **My Rides** - Manage rides you're offering
-- **My Interested Rides** - Track rides you want to join
-- **Notifications** - Stay updated on all ride activity
+### **📖 Complete Documentation**  
+- **API Reference**: See [`backend/docs/api/api-reference.md`](./backend/docs/api/api-reference.md) - Complete REST API documentation
+- **Database Schema**: See [`backend/docs/db/database.md`](./backend/docs/db/database.md) - Complete database architecture
 
 ---
 
-## 🏗️ **Technical Architecture**
+## 🌱 **Why Use CampusShare?**
 
-### **Frontend** 
-- **Framework**: Next.js 14 with React 18
-- **Styling**: Tailwind CSS with Shadcn/ui components
-- **Language**: TypeScript for type safety
-- **Mobile**: Fully responsive design
-
-### **Backend**
-- **Framework**: Flask (Python)
-- **Database**: MongoDB (users, locations, ride_posts, ride_interests, roommate_posts, roommate_interests, notifications)
-- **Authentication**: JWT tokens (30-minute session expiry, auto-logout on frontend)
-- **API**: RESTful endpoints with comprehensive error handling
-
-### **Infrastructure**
-- **Location Data**: 39,493 US ZIP codes and cities
-- **Real-time**: Live notifications for ride updates
-- **Security**: CORS protection and input validation
-
----
-
-## 🌱 **Why CampusShare?**
-
-### **For Students**
-- **💸 Save Money** - Split gas costs and reduce travel expenses
-- **🌿 Go Green** - Reduce carbon footprint through shared transportation
+- **💸 Save Money** - Split travel costs and find affordable housing
+- **🌿 Go Green** - Reduce carbon footprint through shared transportation  
 - **🤝 Build Community** - Meet fellow students and expand your campus network
-- **⏰ Convenient** - Find rides that match your schedule and route
-
-### **For Campus Communities**
-- **🚗 Reduce Parking** - Fewer cars on campus through ride sharing
-- **🔗 Strengthen Bonds** - Foster connections between students
-- **♻️ Sustainability** - Support environmental initiatives
-- **📈 Accessibility** - Make transportation more accessible for all students
-
----
-
-## 📊 **App Statistics**
-
-| Feature | Details |
-|---------|---------|
-| **Locations Supported** | 39,493 US cities and ZIP codes |
-| **User Types** | Students with verified accounts |
-| **Ride Types** | All distances - campus shuttles to road trips |
-| **Roommate Types** | Offers and seekers with lifestyle preferences |
-| **Platform** | Web application (mobile responsive) |
-| **Cost Model** | Free platform with optional cost-sharing |
-
----
-
-## 🚦 **Getting Started**
-
-### **Quick Setup**
-```bash
-# Clone the repository
-git clone <repository-url>
-cd campus-share
-
-# Setup backend
-cd backend
-chmod +x setup.sh
-./setup.sh
-
-# Setup frontend (in new terminal)
-cd frontend  
-chmod +x setup.sh
-./setup.sh
-```
-
-### **Detailed Instructions**
-- **Backend Setup**: See [`backend/README.md`](./backend/README.md)
-- **Frontend Setup**: See [`frontend/README.md`](./frontend/README.md)
-
----
-
-## 🎯 **Use Cases**
-
-### **🏠 Weekend Home Trips**
-*"Need a ride home to Chicago for the weekend? Find other students heading the same way."*
-
-### **✈️ Airport Runs**  
-*"Flight at 6 AM? Share an early morning ride to the airport with fellow travelers."*
-
-### **🎉 Events & Activities**
-*"Concert downtown? Split an Uber with other students going to the same show."*
-
-### **🏫 Campus Commuting**
-*"Live off-campus? Find regular carpool partners for daily commutes."*
-
-### **🛍️ Shopping Trips**
-*"Target run anyone? Share a ride to the mall and split gas costs."*
-
----
-
-## 🔒 **Privacy & Safety**
-
-### **Student Verification**
-- Account verification ensures all users are legitimate students
-- Safe, campus-focused community you can trust
-
-### **Contact Protection**
-- Contact information only shared when rides are confirmed
-- No public exposure of personal details
-
-### **Secure Platform**
-- Modern security practices and data protection
-- No payment processing - direct arrangements between students
-
----
-
-## 🤝 **Community Guidelines**
-
-### **Be Respectful**
-- Treat fellow students with courtesy and respect
-- Communicate clearly about meeting times and locations
-
-### **Be Reliable**  
-- Honor your commitments for rides
-- Communicate promptly about any changes or cancellations
-
-### **Be Safe**
-- Meet in well-lit, public campus locations
-- Trust your instincts and prioritize personal safety
-
----
-
-## 📞 **Support & Contact**
-
-### **Need Help?**
-- **FAQ**: Check the in-app help section for common questions
-- **Technical Issues**: Report bugs through the contact page
-- **Safety Concerns**: Contact campus security if needed
-
-### **Feature Requests**
-Have ideas for improving CampusShare? We'd love to hear from you!
-
----
-
-## 🏆 **Project Status**
-
-**✅ Current Version**: Fully functional ride-sharing platform  
-**🚀 Active Features**: Search, post, and manage rides  
-**🔄 Ongoing**: Performance optimizations and user experience improvements  
-
----
-
-## 📄 **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **🛡️ Stay Safe** - Connect only with verified students in your campus community
+- **⏰ Convenient** - Find rides and roommates that match your schedule and preferences
 
 ---
 
