@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -51,27 +52,13 @@ export default function LoginPage() {
       const result = await login(formData.username, formData.password)
       
       if (result?.error) {
-        toast({
-          title: "Login failed",
-          description: result.error,
-          variant: "destructive",
-          duration: 6000,
-        })
+        errorMessages.failedToLogin(result.error)
       } else {
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-          duration: 3000,
-        })
+        toastMessages.loggedIn()
         router.push("/rides")
       }
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToLogin("An unexpected error occurred. Please try again or contact support.")
     } finally {
       setIsLoading(false)
     }

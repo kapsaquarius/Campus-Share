@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, KeyRound, Loader2, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 
 function VerifyCodeForm() {
@@ -107,30 +108,16 @@ function VerifyCodeForm() {
       const result = await apiService.verifyResetCode(email, code)
       
       if (result.error) {
-        toast({
-          title: "Invalid Code",
-          description: "The verification code is invalid or has expired. Please try again.",
-          variant: "destructive",
-          duration: 5000,
-        })
+        errorMessages.invalidVerificationCode()
         setError("Invalid or expired code")
       } else {
-        toast({
-          title: "Code Verified",
-          description: "Code verified! Please set your new password.",
-          duration: 3000,
-        })
+        toastMessages.codeVerified()
         
         // Navigate to reset password page with email and code
         router.push(`/auth/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to verify code. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.failedToVerifyCode()
       setError("Verification failed")
     } finally {
       setIsLoading(false)
@@ -145,27 +132,13 @@ function VerifyCodeForm() {
       const result = await apiService.forgotPassword(email)
       
       if (result.error) {
-        toast({
-          title: "Error",
-          description: "Failed to resend verification code. Please try again.",
-          variant: "destructive",
-          duration: 5000,
-        })
+        errorMessages.failedToResendCode()
       } else {
-        toast({
-          title: "Code Resent",
-          description: "A new verification code has been sent to your email.",
-          duration: 5000,
-        })
+        toastMessages.verificationCodeSent()
         setCodeBlocks(["", "", "", "", "", ""]) // Clear existing code
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to resend verification code. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.failedToResendCode()
     } finally {
       setIsResending(false)
     }

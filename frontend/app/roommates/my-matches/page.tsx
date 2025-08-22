@@ -5,6 +5,7 @@ import { ProtectedRoute } from "@/components/common/protected-route"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 import { RoommateCard, type RoommateListing } from "@/components/roommates/RoommateCard"
 import { Loader2, Users, Heart, Phone, ArrowRight, MapPin, Calendar as CalendarIcon, Clock, DollarSign, HeartOff, Home, PawPrint, Cigarette, UtensilsCrossed, Moon } from "lucide-react"
@@ -31,7 +32,7 @@ export default function MyRoommateMatchesPage() {
         setMatches((data.interestedListings || []) as any[])
       } catch (e) {
         setMatches([])
-        toast({ title: "Unable to load", description: "Could not load your matches." })
+        errorMessages.failedToLoadMatches()
       } finally {
         setLoading(false)
       }
@@ -56,13 +57,13 @@ export default function MyRoommateMatchesPage() {
       setRemovingId(listingId)
       const resp = await apiService.removeRoommateInterest(token, listingId)
       if (resp.error) {
-        toast({ title: "Failed to remove interest", description: resp.error, variant: "destructive" })
+        errorMessages.failedToRemoveInterest(resp.error)
         return
       }
       setMatches(prev => prev.filter((it: any) => it.listing?._id !== listingId))
-      toast({ title: "Interest removed", description: "You are no longer interested in this listing" })
+      toastMessages.roommateInterestRemoved()
     } catch (e) {
-      toast({ title: "Error", description: "Failed to remove interest", variant: "destructive" })
+      errorMessages.failedToRemoveInterest()
     } finally {
       setRemovingId(null)
     }

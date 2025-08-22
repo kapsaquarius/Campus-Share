@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 import { 
   Calendar, 
@@ -73,15 +74,11 @@ export default function MyInterestedRidesPage() {
       const response = await apiService.getMyInterestedRides(token)
       
       // Handle both direct response and data-wrapped response
-      const interestedRidesData = response.data?.interestedRides || response.interestedRides || []
+      const interestedRidesData = (response as any).data?.interestedRides || (response as any).interestedRides || []
       setInterestedRides(interestedRidesData)
     } catch (error: any) {
       setError(error.message || 'Failed to load interested rides')
-      toast({
-        title: "Error",
-        description: "Failed to load your interested rides",
-        variant: "destructive",
-      })
+      errorMessages.failedToLoadInterestedRides()
     } finally {
       setIsLoading(false)
     }
@@ -96,28 +93,17 @@ export default function MyInterestedRidesPage() {
       const response = await apiService.removeInterest(token, rideId);
       
       if (response.error) {
-        toast({
-          title: "Failed to remove interest",
-          description: response.error,
-          variant: "destructive",
-        });
+        errorMessages.failedToRemoveInterest(response.error);
         return;
       }
 
       // Remove the ride from the local state
       setInterestedRides(prev => prev.filter(item => item.ride._id !== rideId));
       
-      toast({
-        title: "Interest removed",
-        description: "You are no longer interested in this ride",
-      });
+      toastMessages.interestRemoved();
       
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to remove interest",
-        variant: "destructive",
-      });
+      errorMessages.failedToRemoveInterest();
     } finally {
       setRemovingInterest(null);
     }

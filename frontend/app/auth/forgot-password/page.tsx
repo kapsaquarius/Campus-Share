@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Mail, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 
 export default function ForgotPasswordPage() {
@@ -44,32 +45,18 @@ export default function ForgotPasswordPage() {
       
       if (result.error) {
         if (result.error === "The email address you entered does not exist.") {
-          toast({
-            title: "Email Not Found",
-            description: result.error,
-            variant: "destructive",
-            duration: 5000,
-          })
+          errorMessages.emailNotFound(result.error)
         } else {
           throw new Error(result.error)
         }
       } else {
-        toast({
-          title: "Verification Code Sent",
-          description: "A verification code has been sent to your email.",
-          duration: 5000,
-        })
+        toastMessages.verificationCodeSent()
         
         // Navigate to verification page with email state
         router.push(`/auth/verify-code?email=${encodeURIComponent(email.trim().toLowerCase())}`)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send verification code. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.failedToSendVerificationCode()
     } finally {
       setIsLoading(false)
     }

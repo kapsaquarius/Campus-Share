@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, MapPin, Home, DollarSign, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiService } from "@/lib/api"
@@ -94,7 +95,7 @@ export default function CreateRoommatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!token) {
-      toast({ title: "Authentication required", description: "Please log in to create a listing.", variant: "destructive" })
+      errorMessages.authRequired.createListing()
       return
     }
     if (!validateForm()) return
@@ -118,10 +119,10 @@ export default function CreateRoommatePage() {
       }
       const response = await apiService.createRoommate(token, payload)
       if (response.error) throw new Error(response.error)
-      toast({ title: "Listing posted!", description: "Your roommate listing is now visible." })
+      toastMessages.listingCreated()
       router.push("/roommates")
     } catch (e) {
-      toast({ title: "Failed", description: "Could not create listing.", variant: "destructive" })
+      errorMessages.failedToCreateListing()
     } finally {
       setIsLoading(false)
     }

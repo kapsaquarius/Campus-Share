@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/auth-context"
 import { useLocation } from "@/contexts/location-context"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages, showValidationErrorToast } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 import { Users, MapPin, CalendarIcon, DollarSign, Search, X, Loader2, Filter, Home as HomeIcon } from "lucide-react"
 import { format } from "date-fns"
@@ -67,11 +68,11 @@ export default function RoommatesPage() {
 
   const handleSearch = async () => {
     if (!token) {
-      toast({ title: "Authentication required", description: "Please log in to search for roommates", variant: "destructive" })
+      errorMessages.authRequired.searchRoommates()
       return
     }
     if (!isFormValid) {
-      toast({ title: "Validation error", description: "Please select a valid location from suggestions.", variant: "destructive" })
+      showValidationErrorToast("Please select a valid location from suggestions.")
       return
     }
 
@@ -98,10 +99,10 @@ export default function RoommatesPage() {
       if (response.error) throw new Error(response.error)
       const data = (response.data as any) || {}
       setListings((data.listings || []) as RoommateListing[])
-      toast({ title: "Search completed", description: `Found ${(data.listings || []).length} listings.` })
+      toastMessages.searchCompleted((data.listings || []).length, "listings")
     } catch (e) {
       setListings([])
-      toast({ title: "Search failed", description: "We could not search at this time.", variant: "destructive" })
+      errorMessages.failedToSearchRoommates()
     } finally {
       setIsSearching(false)
     }
@@ -113,11 +114,11 @@ export default function RoommatesPage() {
     try {
       const resp = await apiService.expressRoommateInterest(token, id)
       if (resp.error) throw new Error(resp.error)
-      toast({ title: "Interest sent", description: "The poster has been notified." })
+      toastMessages.roommateInterestSent()
       // Remove from current results (parity with rides UX)
       setListings(prev => prev.filter(l => l._id !== id))
     } catch (e) {
-      toast({ title: "Failed", description: "Could not send interest.", variant: "destructive" })
+      errorMessages.failedToSendRoommateInterest()
     } finally {
       setExpressingInterestId(null)
     }

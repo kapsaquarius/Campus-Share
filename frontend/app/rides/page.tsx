@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages, showValidationErrorToast } from "@/lib/toast-utils"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useNotifications } from "@/contexts/notification-context"
@@ -186,22 +187,12 @@ export default function RidesPage() {
     try {
       const response = await apiService.getRides(token)
       if (response.error) {
-              toast({
-        title: "Error",
-        description: response.error,
-        variant: "destructive",
-        duration: 6000,
-      })
+              errorMessages.failedToLoadRides()
       } else if (response.data && typeof response.data === 'object' && response.data !== null && 'rides' in response.data) {
         setRides((response.data as any).rides || [])
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load rides",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToLoadRides()
     }
   }
 
@@ -283,33 +274,18 @@ export default function RidesPage() {
     // Validate locations before search
     if (searchForm.startingFrom && !validSelections.startingFrom) {
       clearInvalidLocation("startingFrom")
-      toast({
-        title: "Invalid starting location",
-        description: "Location cleared. Please select a valid location from the dropdown suggestions.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.invalidLocation("starting location")
       return
     }
     
     if (searchForm.goingTo && !validSelections.goingTo) {
       clearInvalidLocation("goingTo")
-      toast({
-        title: "Invalid destination",
-        description: "Location cleared. Please select a valid location from the dropdown suggestions.", 
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.invalidLocation("destination")
       return
     }
 
     if (!token) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to search for rides",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.authRequired.searchRides()
       return
     }
 
@@ -330,12 +306,7 @@ export default function RidesPage() {
     
     if (errors.length > 0) {
       setFormErrors(errors)
-      toast({
-        title: "Validation Error",
-        description: errors.join(", "),
-        variant: "destructive",
-        duration: 5000,
-      })
+      showValidationErrorToast(errors.join(", "))
       return
     }
 
@@ -376,18 +347,9 @@ export default function RidesPage() {
       })
       
       setRides(filteredRides)
-      toast({
-        title: "Search completed",
-        description: `Found ${filteredRides.length} rides for your criteria.`,
-        duration: 3000,
-      })
+      toastMessages.searchCompleted(filteredRides.length, "rides")
     } catch (error) {
-      toast({
-        title: "Search failed",
-        description: "Failed to search for rides",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToSearchRides()
     } finally {
       setIsSearching(false)
     }
@@ -436,12 +398,7 @@ export default function RidesPage() {
 
   const handleExpressInterest = async (rideId: string) => {
     if (!token) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to express interest",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.authRequired.expressInterest()
       return
     }
 
@@ -450,18 +407,9 @@ export default function RidesPage() {
       const response = await apiService.expressInterest(token, rideId)
 
       if (response && response.error) {
-        toast({
-          title: "Failed to express interest",
-          description: response.error,
-          variant: "destructive",
-          duration: 6000,
-        })
+        errorMessages.failedToExpressInterest(response.error)
       } else {
-        toast({
-          title: "Interest expressed!",
-          description: "The driver has been notified! Check 'My Interested Rides' in your profile.",
-          duration: 5000,
-        })
+        toastMessages.interestSent()
         
         // Refresh notifications to show any new notifications
         await refreshNotifications()
@@ -470,12 +418,7 @@ export default function RidesPage() {
         await refreshSearchResults()
       }
     } catch (error) {
-      toast({
-        title: "Failed to express interest",
-        description: "An error occurred while expressing interest",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToExpressInterest()
     } finally {
       setExpressingInterest(null)
     }

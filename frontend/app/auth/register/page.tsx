@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Eye, EyeOff, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
 import { apiService } from "@/lib/api"
 
@@ -174,19 +175,10 @@ export default function RegisterPage() {
         phone: formData.phone,
         whatsapp: formData.whatsapp,
       })
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to CampusShare!",
-        duration: 4000,
-      })
+      toastMessages.accountCreated()
       router.push("/rides")
     } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: "Please try again or contact support if the problem persists.",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToCreateAccount()
     } finally {
       setIsLoading(false)
     }

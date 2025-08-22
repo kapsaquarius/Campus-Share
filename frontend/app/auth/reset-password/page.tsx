@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 
 function ResetPasswordForm() {
@@ -87,40 +88,21 @@ function ResetPasswordForm() {
         if (result.error === "New password must be different from your current password") {
           // Show specific error for same password
           setErrors({ newPassword: result.error })
-          toast({
-            title: "Invalid Password",
-            description: result.error,
-            variant: "destructive",
-            duration: 5000,
-          })
+          errorMessages.invalidPassword(result.error)
         } else {
           // Handle other errors (expired code, etc.)
-          toast({
-            title: "Error",
-            description: "The verification code is invalid or has expired. Please try again.",
-            variant: "destructive",
-            duration: 5000,
-          })
+          errorMessages.invalidVerificationCode()
           // Redirect back to forgot password page
           router.push("/auth/forgot-password")
         }
       } else {
-        toast({
-          title: "Password Updated",
-          description: "Your password has been successfully updated. You can now log in with your new password.",
-          duration: 5000,
-        })
+        toastMessages.passwordUpdated()
         
         // Redirect to login page
         router.push("/auth/login")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to reset password. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.failedToResetPassword()
     } finally {
       setIsLoading(false)
     }

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, Car, MapPin, Clock, Users, DollarSign, Loader2, X } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { useLocation } from "@/contexts/location-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiService } from "@/lib/api"
@@ -239,11 +240,7 @@ export default function CreateRidePage() {
     if (!validateForm()) return
 
     if (!token) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to create a ride.",
-        variant: "destructive",
-      })
+      errorMessages.authRequired.createRide()
       return
     }
 
@@ -268,28 +265,15 @@ export default function CreateRidePage() {
       const response = await apiService.createRide(token, rideData)
 
       if (response.error) {
-        toast({
-          title: "Failed to create ride",
-          description: response.error,
-          variant: "destructive",
-        })
+        errorMessages.failedToCreateRide(response.error)
         return
       }
 
-      toast({
-        title: "Ride posted successfully!",
-        description: "Your ride has been created and is now visible to other students.",
-        duration: 4000,
-      })
+      toastMessages.rideCreated()
 
       router.push("/rides")
     } catch (error) {
-      toast({
-        title: "An error occurred",
-        description: "Failed to create ride. Please try again.",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToCreateRide()
     } finally {
       setIsLoading(false)
     }

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Phone, MessageCircle, Edit, Save, X, Calendar, Mail, Loader2, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { format } from "date-fns"
 import { CountryPhoneInput, validatePhoneNumber } from "@/components/ui/country-phone-input"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -125,18 +126,9 @@ export default function ProfilePage() {
       }
       setIsEditing(false)
       setValidationErrors({})
-      toast({
-        title: "Profile updated successfully!",
-        description: "Your changes have been saved.",
-        duration: 4000,
-      })
+      toastMessages.profileUpdated()
     } catch (error: any) {
-      toast({
-        title: "Failed to update profile",
-        description: "Please try again or contact support.",
-        variant: "destructive",
-        duration: 6000,
-      })
+      errorMessages.failedToUpdateProfile()
     } finally {
       setIsLoading(false)
     }
@@ -162,12 +154,7 @@ export default function ProfilePage() {
 
   const handleDeleteAccount = async () => {
     if (!token) {
-      toast({
-        title: "Error",
-        description: "Please log in to delete your account",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.authRequired.deleteAccount()
       return
     }
 
@@ -179,23 +166,14 @@ export default function ProfilePage() {
         throw new Error(result.error)
       }
 
-      toast({
-        title: "Account Deleted",
-        description: "Your account and all associated data have been permanently deleted.",
-        duration: 5000,
-      })
+      toastMessages.accountDeleted()
 
       // Log out and redirect to home page
       logout()
       router.push('/')
       
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete account. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
+      errorMessages.failedToDeleteAccount()
     } finally {
       setIsDeleting(false)
     }

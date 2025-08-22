@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages, errorMessages } from "@/lib/toast-utils"
 import { apiService } from "@/lib/api"
 import { RoommateCard, type RoommateListing } from "@/components/roommates/RoommateCard"
 import { Calendar } from "@/components/ui/calendar"
@@ -65,7 +66,7 @@ export default function MyRoommateListingsPage() {
         setListings(base as RoommateListing[])
       } catch (e) {
         setListings([])
-        toast({ title: "Unable to load", description: "Could not load your listings." })
+        errorMessages.failedToLoadListings()
       } finally {
         setLoading(false)
       }
@@ -156,7 +157,7 @@ export default function MyRoommateListingsPage() {
       }
       const resp = await apiService.updateRoommate(token, editing._id, payload)
       if (resp.error) throw new Error(resp.error)
-      toast({ title: 'Updated', description: 'Listing updated successfully.' })
+      toastMessages.listingUpdated()
       setEditOpen(false)
       setEditing(null)
       setIsRefreshing(true)
@@ -164,7 +165,7 @@ export default function MyRoommateListingsPage() {
       const data = (reload.data as any) || {}
       setListings((data.listings || []) as RoommateListing[])
     } catch (e) {
-      toast({ title: 'Failed', description: 'Could not update listing.', variant: 'destructive' })
+      errorMessages.failedToUpdateListing()
     } finally {
       setIsUpdating(false)
       setIsRefreshing(false)
@@ -177,12 +178,12 @@ export default function MyRoommateListingsPage() {
     try {
       const resp = await apiService.deleteRoommate(token, id)
       if (resp.error) throw new Error(resp.error)
-      toast({ title: 'Deleted', description: 'Listing deleted.' })
+      toastMessages.listingDeleted()
       const reload = await apiService.getMyRoommateListings(token)
       const data = (reload.data as any) || {}
       setListings((data.listings || []) as RoommateListing[])
     } catch (e) {
-      toast({ title: 'Failed', description: 'Could not delete listing.', variant: 'destructive' })
+      errorMessages.failedToDeleteListing()
     } finally {
       setDeletingId(null)
     }

@@ -14,7 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { InterestedUsersModal } from '@/components/InterestedUsersModal';
 import { ProtectedRoute } from '@/components/common/protected-route';
 import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CalendarIcon, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { toastMessages, errorMessages, showValidationErrorToast } from '@/lib/toast-utils';
 import { apiService } from '@/lib/api';
 import { useLocation } from '@/contexts/location-context';
 import { TimeInput } from '@/components/ui/time-input';
@@ -172,20 +173,10 @@ export default function MyRidesPage() {
         const data: any = response.data || {};
         setRides((data.rides as Ride[]) || []);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch your rides",
-          variant: "destructive",
-          duration: 6000,
-        });
+        errorMessages.failedToLoadRides();
       }
     } catch (error) {
-              toast({
-          title: "Error",
-          description: "Error fetching rides",
-          variant: "destructive",
-          duration: 6000,
-        });
+              errorMessages.failedToLoadRides();
     } finally {
       if (isInitialLoad) {
         setLoading(false);
@@ -321,12 +312,7 @@ export default function MyRidesPage() {
 
     // Additional check for valid location selections
     if (!validSelections.startingFrom || !validSelections.goingTo) {
-      toast({
-        title: "Error",
-        description: "Please select valid locations from the dropdown suggestions",
-        variant: "destructive",
-        duration: 6000,
-      });
+      showValidationErrorToast("Please select valid locations from the dropdown suggestions.");
       return;
     }
 
@@ -345,22 +331,13 @@ export default function MyRidesPage() {
       };
 
       await apiService.updateRide(token, editingRide._id, updateData);
-      toast({
-        title: "Success",
-        description: "Ride updated successfully",
-        duration: 6000,
-      });
+      toastMessages.rideUpdated();
       setEditDialogOpen(false);
       setEditingRide(null);
       // Refresh the rides list to show updated data
       await fetchMyRides();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update ride",
-        variant: "destructive",
-        duration: 6000,
-      });
+      errorMessages.failedToUpdateRide();
     } finally {
       setIsUpdating(false);
     }
@@ -373,20 +350,11 @@ export default function MyRidesPage() {
 
     try {
       await apiService.deleteRide(token, rideId);
-      toast({
-        title: "Success",
-        description: "Ride deleted successfully",
-        duration: 6000,
-      });
+      toastMessages.rideDeleted();
       // Refresh the rides list to show updated data
       await fetchMyRides();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete ride",
-        variant: "destructive",
-        duration: 6000,
-      });
+      errorMessages.failedToDeleteRide();
     } finally {
       setDeletingRideId(null);
     }

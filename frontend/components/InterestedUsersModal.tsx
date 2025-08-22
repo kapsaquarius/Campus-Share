@@ -23,6 +23,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { toastMessages, errorMessages } from '@/lib/toast-utils'
 import { apiService } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -83,22 +84,14 @@ export function InterestedUsersModal({
       
       if (response.error) {
         setError(response.error)
-        toast({
-          title: "Error",
-          description: response.error,
-          variant: "destructive",
-        })
+        errorMessages.failedToLoadInterestedUsers(response.error)
       } else {
         setInterestedUsers(response.data?.interestedUsers || [])
       }
     } catch (error) {
       const errorMsg = "Failed to load interested users"
       setError(errorMsg)
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive",
-      })
+      errorMessages.failedToLoadInterestedUsers(errorMsg)
     } finally {
       setIsLoading(false)
     }
@@ -106,10 +99,7 @@ export function InterestedUsersModal({
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
-    toast({
-      title: "Copied!",
-      description: `${label} copied to clipboard`,
-    })
+    toastMessages.copied(label)
   }
 
   const formatDate = (dateString: string) => {
